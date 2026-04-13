@@ -1,0 +1,21 @@
+{
+  "name": "taskly",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run start:dev --workspace @taskly/api",
+    "dev:mobile": "npm run start --workspace @taskly/mobile",
+    "dev": "npm run dev:api",
+    "build:api": "npm run build --workspace @taskly/api",
+    "lint:api": "npm run lint --workspace @taskly/api",
+    "typecheck:mobile": "npm run typecheck --workspace @taskly/mobile",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f postgres",
+    "db:migrate": "npm run db:migrate --workspace @taskly/api",
+    "db:seed": "npm run db:seed --workspace @taskly/api"
+  }
+}
