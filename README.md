@@ -1,20 +1,27 @@
 # Taskly
 
-Base acadêmica do app **Taskly**, um marketplace digital de serviços.
+Projeto acadêmico da **Entrega 3 - Mobile II - 0022** com monorepo:
+- `apps/api`: NestJS + Drizzle + PostgreSQL
+- `apps/mobile`: React Native + Expo SDK 54 + TypeScript
 
-Nesta entrega da disciplina, o foco funcional foi:
+## Contexto da entrega
+
+O Taskly evolui para uma base de app com:
 - autenticação
-- CRUD de notícias
-- consumo da API real no app mobile
+- RBAC por perfil (`LEITOR`, `AUTOR`, `EDITOR`, `SUPERADMIN`)
+- CRUD de notícias com regras editoriais
+- módulos complementares exigidos (comentários, tags, perfis, UF, cidades, usuários admin)
+- app mobile com fluxos públicos e fluxos por nível de acesso
 
-O visual e a organização foram inspirados no protótipo Figma informado:
-`https://www.figma.com/design/Xgd61TF4Cy2sVlIqv3iVph/Taskly--Copy-?node-id=0-1&t=6hQi8lsG41S5Ix14-1`
+## Stack
 
-## Contexto acadêmico
-
-Este repositório entrega um MVP técnico pronto para demonstração, já estruturado para evolução futura do Taskly para um marketplace completo (serviços, agendamento, pagamento, avaliação e perfis mais avançados).
-
-## Stack utilizada
+### API
+- NestJS
+- TypeScript
+- Drizzle ORM
+- PostgreSQL
+- JWT + Passport
+- class-validator
 
 ### Mobile
 - React Native
@@ -23,57 +30,45 @@ Este repositório entrega um MVP técnico pronto para demonstração, já estrut
 - React Navigation
 - AsyncStorage
 
-### API
-- NestJS
-- TypeScript
-- PostgreSQL
-- Drizzle ORM
-- JWT + Passport
-- class-validator
-
 ### Infra
 - Docker Compose (PostgreSQL)
-- Variáveis de ambiente com `.env`
 
-## Estrutura do projeto
+## Estrutura
 
 ```text
 .
 ├── apps
 │   ├── api
 │   │   ├── drizzle
-│   │   ├── src
-│   │   │   ├── common
-│   │   │   ├── config
-│   │   │   ├── db
-│   │   │   └── modules
-│   │   │       ├── auth
-│   │   │       ├── news
-│   │   │       ├── profiles
-│   │   │       └── users
-│   │   └── .env.example
+│   │   └── src
+│   │       ├── common
+│   │       ├── config
+│   │       ├── db
+│   │       └── modules
+│   │           ├── auth
+│   │           ├── news
+│   │           ├── comments
+│   │           ├── tags
+│   │           ├── profiles
+│   │           ├── users
+│   │           ├── ufs
+│   │           └── cities
 │   └── mobile
-│       ├── src
-│       │   ├── components
-│       │   ├── hooks
-│       │   ├── navigation
-│       │   ├── screens
-│       │   ├── services
-│       │   ├── storage
-│       │   ├── theme
-│       │   └── types
-│       └── .env.example
+│       └── src
+│           ├── components
+│           ├── hooks
+│           ├── navigation
+│           ├── screens
+│           │   └── admin
+│           ├── services
+│           ├── storage
+│           ├── theme
+│           └── types
 ├── docker-compose.yml
 └── package.json
 ```
 
-## Pré-requisitos
-
-- Node.js 20+
-- npm 10+
-- Docker + Docker Compose
-
-## Como instalar
+## Instalação
 
 ```bash
 npm install
@@ -93,53 +88,118 @@ cp apps/api/.env.example apps/api/.env
 cp apps/mobile/.env.example apps/mobile/.env
 ```
 
-`EXPO_PUBLIC_API_URL` deve apontar para a API.
-- Emulador Android costuma usar `http://10.0.2.2:3333/api`
-- iOS simulator geralmente funciona com `http://localhost:3333/api`
-- Dispositivo físico deve usar IP da máquina na rede local
+No celular físico (Expo Go), use IP local no mobile:
 
-## Banco de dados
+```env
+EXPO_PUBLIC_API_URL=http://SEU_IP_LOCAL:3333/api
+```
 
-Subir PostgreSQL com Docker:
+## Uso com Docker
+
+O Docker é usado para subir o **PostgreSQL** do projeto.  
+API e mobile continuam rodando localmente com `npm`.
+
+### 1) Subir o banco
 
 ```bash
 npm run db:up
 ```
 
-A porta publicada padrão está em `55432` (evita conflito com portas locais já ocupadas).
+Esse comando executa `docker compose up -d postgres` usando o `docker-compose.yml`.
 
-Aplicar migrations:
+### 2) Preparar schema e dados
 
 ```bash
 npm run db:migrate
-```
-
-Rodar seed de perfis:
-
-```bash
 npm run db:seed
 ```
 
-Parar banco:
+### 3) Subir aplicação
 
-```bash
-npm run db:down
-```
-
-## Rodando a API
+API:
 
 ```bash
 npm run dev:api
 ```
 
-API disponível em:
-- `http://localhost:3333/api`
-
-## Rodando o app mobile
+Mobile:
 
 ```bash
 npm run dev:mobile
 ```
+
+### 4) Logs e parada
+
+Ver logs do PostgreSQL:
+
+```bash
+npm run db:logs
+```
+
+Parar containers:
+
+```bash
+npm run db:down
+```
+
+Se quiser remover também o volume de dados:
+
+```bash
+docker compose down -v
+```
+
+### Compose alternativo (`docker-compose.db.yml`)
+
+Se preferir usar o compose dedicado do banco:
+
+```bash
+docker compose -f docker-compose.db.yml up -d
+docker compose -f docker-compose.db.yml down
+```
+
+### Troubleshooting rápido
+
+- Erro de porta ocupada: altere `POSTGRES_PORT` e ajuste `DATABASE_URL` em `apps/api/.env`.
+- API não conecta no banco: confirme se o container está saudável com `npm run db:logs`.
+- Se mudou variáveis de ambiente do banco, recrie o serviço com `npm run db:down` e depois `npm run db:up`.
+
+## Usuários de demonstração (seed)
+
+Todos com senha `123456`:
+- `leitor`
+- `autor`
+- `editor`
+- `superadmin`
+
+## RBAC implementado
+
+### LEITOR
+- visualiza notícias publicadas
+- acessa home pública/autenticada
+- comenta em notícias publicadas
+- edita dados próprios (`/usuarios/me`)
+
+### AUTOR
+- cria notícia própria (forçada para `RASCUNHO`)
+- visualiza publicadas + próprias
+- edita apenas notícia própria em `RASCUNHO`
+- não publica/despublica
+
+### EDITOR
+- visualiza todas as notícias
+- edita qualquer notícia
+- publica/despublica (`PATCH /noticias/:id/status`)
+
+### SUPERADMIN
+- tudo do EDITOR
+- exclui notícia
+- CRUD administrativo de:
+  - tags
+  - perfis
+  - UF
+  - cidades
+  - usuários
+  - gerenciamento de comentários
 
 ## Endpoints implementados
 
@@ -149,50 +209,86 @@ npm run dev:mobile
 - `GET /api/auth/me`
 
 ### Notícias
-- `GET /api/noticias`
+- `GET /api/noticias` (público + comportamento por token/perfil)
+- `GET /api/noticias?tagId=<id>`
 - `GET /api/noticias/:id`
-- `POST /api/noticias` (JWT)
-- `PUT /api/noticias/:id` (JWT)
-- `DELETE /api/noticias/:id` (JWT)
+- `GET /api/noticias/minhas` (auth)
+- `GET /api/noticias/painel` (EDITOR/SUPERADMIN)
+- `POST /api/noticias` (AUTOR/EDITOR/SUPERADMIN)
+- `PUT /api/noticias/:id`
+- `PATCH /api/noticias/:id/status` (EDITOR/SUPERADMIN)
+- `DELETE /api/noticias/:id` (SUPERADMIN)
 
-## Modelagem de dados
+### Comentários
+- `GET /api/comentarios`
+- `GET /api/comentarios?noticiaId=<id>`
+- `POST /api/comentarios` (auth)
+- `PUT /api/comentarios/:id` (dono/SUPERADMIN)
+- `DELETE /api/comentarios/:id` (dono/SUPERADMIN)
 
-Implementado funcionalmente:
-- `profiles`
-- `users`
-- `news`
+### Tags
+- `GET /api/tags`
+- `GET /api/tags/:id`
+- `POST /api/tags` (SUPERADMIN)
+- `PUT /api/tags/:id` (SUPERADMIN)
+- `DELETE /api/tags/:id` (SUPERADMIN)
 
-Estruturas já preparadas para evolução futura:
-- `comments`
-- `tags`
-- `ufs`
-- `cities`
+### Perfis
+- `GET /api/perfis`
+- `POST /api/perfis` (SUPERADMIN)
+- `PUT /api/perfis/:id` (SUPERADMIN)
+- `DELETE /api/perfis/:id` (SUPERADMIN)
 
-## O que foi implementado nesta entrega
+### UF
+- `GET /api/ufs`
+- `POST /api/ufs` (SUPERADMIN)
+- `PUT /api/ufs/:id` (SUPERADMIN)
+- `DELETE /api/ufs/:id` (SUPERADMIN)
 
-- Monorepo simples com `apps/api` e `apps/mobile`
-- API NestJS com módulos organizados (`auth`, `users`, `profiles`, `news`)
-- Drizzle ORM configurado com schema e migration inicial
-- Seed de perfis: `LEITOR`, `AUTOR`, `EDITOR`, `SUPERADMIN`
-- Cadastro público criando usuário com perfil `LEITOR`
-- Login com JWT e senha em hash (`bcrypt`)
-- CRUD de notícias com autenticação para escrita
-- Controle básico de autoria em edição/exclusão (autor ou SUPERADMIN)
-- Mobile Expo SDK 54 com TypeScript
-- Telas: Splash, Login, Cadastro, Home, Detalhe, Nova/Editar notícia, Perfil
-- Camada de API centralizada no mobile
-- Persistência local de sessão/token no mobile
-- Tema visual consistente inspirado no Figma (teal + orange, cards limpos)
+### Cidades
+- `GET /api/cidades`
+- `GET /api/cidades?ufId=<id>`
+- `POST /api/cidades` (SUPERADMIN)
+- `PUT /api/cidades/:id` (SUPERADMIN)
+- `DELETE /api/cidades/:id` (SUPERADMIN)
 
-## O que ficou preparado para próximas entregas
+### Usuários
+- `GET /api/usuarios/me` (auth)
+- `PUT /api/usuarios/me` (auth)
+- `GET /api/usuarios` (SUPERADMIN)
+- `GET /api/usuarios/:id` (SUPERADMIN)
+- `POST /api/usuarios` (SUPERADMIN)
+- `PUT /api/usuarios/:id` (SUPERADMIN)
+- `DELETE /api/usuarios/:id` (SUPERADMIN)
 
-- Base para RBAC por perfil
-- Base de entidades de marketplace (comentários, tags, UF/cidade)
-- Estrutura modular pronta para novos domínios:
-  - serviços
-  - agenda
-  - pagamentos
-  - avaliações
+## Fluxos mobile por perfil
+
+### Público (sem login)
+- Home pública
+- Detalhe público de notícia publicada
+- Busca por tag
+- Login
+- Cadastro
+
+### LEITOR
+- Meu perfil (visualizar/editar)
+- Comentar em notícia
+
+### AUTOR
+- Minhas notícias
+- Nova notícia
+- Edição de notícia própria em rascunho
+
+### EDITOR
+- Painel editorial
+- Editar qualquer notícia
+- Publicar/despublicar
+
+### SUPERADMIN
+- Painel admin
+- CRUD notícias (inclui exclusão)
+- CRUD tags, perfis, UF, cidades, usuários
+- Gerenciar comentários
 
 ## Scripts úteis
 
@@ -207,20 +303,24 @@ Estruturas já preparadas para evolução futura:
 - `npm run db:seed`
 - `npm run db:down`
 
-### API (`apps/api`)
-- `npm run start:dev`
-- `npm run build`
-- `npm run db:generate`
-- `npm run db:migrate`
-- `npm run db:seed`
+## Matriz final de conformidade (Entrega 3)
 
-### Mobile (`apps/mobile`)
-- `npm run start`
-- `npm run android`
-- `npm run ios`
-- `npm run typecheck`
-
-## Observações
-
-- O migration file gerado automaticamente está em `apps/api/drizzle/0000_rapid_mephisto.sql`.
-- Se quiser regenerar migrations após mudanças no schema, rode `npm run db:generate --workspace @taskly/api`.
+| Requisito da entrega | Status | Evidência |
+|---|---|---|
+| RBAC LEITOR/AUTOR/EDITOR/SUPERADMIN | ✅ Conforme | `apps/api/src/modules/news/news.service.ts`, `apps/api/src/common/guards/roles.guard.ts` |
+| Proteger rascunho no detalhe público | ✅ Conforme | `apps/api/src/modules/news/news.service.ts` (`canViewNews`) |
+| CRUD notícias com regras por perfil | ✅ Conforme | `apps/api/src/modules/news/news.controller.ts` + `news.service.ts` |
+| CRUD comentários | ✅ Conforme | `apps/api/src/modules/comments/*` |
+| CRUD tags | ✅ Conforme | `apps/api/src/modules/tags/*` |
+| CRUD perfis | ✅ Conforme | `apps/api/src/modules/profiles/*` |
+| CRUD UF | ✅ Conforme | `apps/api/src/modules/ufs/*` |
+| CRUD cidades | ✅ Conforme | `apps/api/src/modules/cities/*` |
+| CRUD usuários admin + perfil próprio | ✅ Conforme | `apps/api/src/modules/users/*` |
+| Associação N:N notícia-tag | ✅ Conforme | `apps/api/src/db/schema.ts` (`newsTags`) + migration `0001_closed_sandman.sql` |
+| Home pública + detalhe público + busca por tag | ✅ Conforme | `apps/mobile/src/screens/HomeScreen.tsx`, `TagSearchScreen.tsx`, `NewsDetailScreen.tsx` |
+| Fluxo LEITOR | ✅ Conforme | `ProfileScreen.tsx`, `NewsDetailScreen.tsx` |
+| Fluxo AUTOR | ✅ Conforme | `MyNewsScreen.tsx`, `NewsFormScreen.tsx` |
+| Fluxo EDITOR | ✅ Conforme | `EditorialPanelScreen.tsx` |
+| Fluxo SUPERADMIN | ✅ Conforme | `AdminPanelScreen.tsx` + `screens/admin/*` |
+| Build API sem erro | ✅ Conforme | `npm run build:api` |
+| Typecheck mobile sem erro | ✅ Conforme | `npm run typecheck:mobile` |
