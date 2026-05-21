@@ -1,326 +1,316 @@
 # Taskly
 
-Projeto acadêmico da **Entrega 3 - Mobile II - 0022** com monorepo:
-- `apps/api`: NestJS + Drizzle + PostgreSQL
-- `apps/mobile`: React Native + Expo SDK 54 + TypeScript
-
-## Contexto da entrega
-
-O Taskly evolui para uma base de app com:
-- autenticação
-- RBAC por perfil (`LEITOR`, `AUTOR`, `EDITOR`, `SUPERADMIN`)
-- CRUD de notícias com regras editoriais
-- módulos complementares exigidos (comentários, tags, perfis, UF, cidades, usuários admin)
-- app mobile com fluxos públicos e fluxos por nível de acesso
+Marketplace de serviços que conecta **clientes** a **profissionais** (elétrica, hidráulica, reformas, etc.). Monorepo com API NestJS e app React Native/Expo.
 
 ## Stack
 
-### API
-- NestJS
-- TypeScript
-- Drizzle ORM
-- PostgreSQL
-- JWT + Passport
-- class-validator
-
-### Mobile
-- React Native
-- Expo SDK 54
-- TypeScript
-- React Navigation
-- AsyncStorage
-
-### Infra
-- Docker Compose (PostgreSQL)
+| Camada | Tecnologia |
+|---|---|
+| API | NestJS · Drizzle ORM · PostgreSQL · JWT |
+| Mobile | React Native · Expo SDK 54 · React Navigation |
+| Infra | Docker Compose (PostgreSQL) |
 
 ## Estrutura
 
-```text
-.
-├── apps
-│   ├── api
-│   │   ├── drizzle
-│   │   └── src
-│   │       ├── common
-│   │       ├── config
-│   │       ├── db
-│   │       └── modules
-│   │           ├── auth
-│   │           ├── news
-│   │           ├── comments
-│   │           ├── tags
-│   │           ├── profiles
-│   │           ├── users
-│   │           ├── ufs
-│   │           └── cities
-│   └── mobile
-│       └── src
-│           ├── components
-│           ├── hooks
-│           ├── navigation
-│           ├── screens
-│           │   └── admin
-│           ├── services
-│           ├── storage
-│           ├── theme
-│           └── types
+```
+Taskly/
+├── apps/
+│   ├── api/                        # Backend NestJS
+│   │   ├── drizzle/                # Migrations SQL
+│   │   └── src/
+│   │       ├── common/             # Guards, decorators, utils RBAC
+│   │       ├── config/             # Validação de env (Zod)
+│   │       ├── db/                 # Schema Drizzle, migrations, seed
+│   │       └── modules/
+│   │           ├── auth/           # Login, cadastro, JWT
+│   │           ├── users/          # Usuários (próprio + admin)
+│   │           ├── profiles/       # CRUD de perfis (ADMIN)
+│   │           ├── client-profiles/        # Perfil do cliente
+│   │           ├── professional-profiles/  # Perfil + portfólio do profissional
+│   │           ├── service-categories/     # Categorias de serviço
+│   │           ├── ufs/            # Estados brasileiros
+│   │           └── cities/         # Cidades
+│   └── mobile/                     # App React Native
+│       └── src/
+│           ├── components/
+│           ├── hooks/              # useAuth (contexto de autenticação)
+│           ├── navigation/         # AppNavigator (tabs por role)
+│           ├── screens/
+│           │   ├── admin/          # Telas administrativas
+│           │   ├── ProfileScreen.tsx
+│           │   ├── EditClientProfileScreen.tsx
+│           │   ├── EditProfessionalProfileScreen.tsx
+│           │   └── RegisterScreen.tsx
+│           ├── services/           # Chamadas HTTP à API
+│           ├── theme/              # Cores e espaçamentos
+│           └── types/              # Tipos TypeScript
 ├── docker-compose.yml
 └── package.json
 ```
 
-## Instalação
+---
+
+## Como rodar
+
+### Pré-requisitos
+
+- [Node.js](https://nodejs.org) 20+
+- [Docker](https://www.docker.com) com Docker Compose
+- [Expo Go](https://expo.dev/client) no celular (ou emulador Android/iOS)
+
+---
+
+### 1. Instalar dependências
+
+Na raiz do projeto:
 
 ```bash
 npm install
 ```
 
-## Configuração de ambiente
+---
 
-### API
+### 2. Configurar variáveis de ambiente da API
 
-```bash
-cp apps/api/.env.example apps/api/.env
-```
-
-### Mobile
+Crie o arquivo `apps/api/.env`:
 
 ```bash
-cp apps/mobile/.env.example apps/mobile/.env
+# apps/api/.env
+
+DATABASE_URL=postgresql://taskly:taskly@localhost:55432/taskly
+JWT_SECRET=chave-secreta-minimo-8-chars
+JWT_EXPIRES_IN=7d
+
+# Opcionais (têm default)
+PORT=3333
+API_PREFIX=api
+CORS_ORIGIN=*
+NODE_ENV=development
 ```
 
-No celular físico (Expo Go), use IP local no mobile:
+> **Dica:** a senha e usuário do banco (`taskly:taskly`) e a porta (`55432`) já estão configurados no `docker-compose.yml`. Só copie o `DATABASE_URL` acima.
 
-```env
-EXPO_PUBLIC_API_URL=http://SEU_IP_LOCAL:3333/api
+---
+
+### 3. Configurar variáveis de ambiente do mobile
+
+Crie o arquivo `apps/mobile/.env`:
+
+```bash
+# apps/mobile/.env
+
+# Emulador Android
+EXPO_PUBLIC_API_URL=http://10.0.2.2:3333/api
+
+# Celular físico na mesma rede Wi-Fi — use o IP local da sua máquina
+# EXPO_PUBLIC_API_URL=http://192.168.x.x:3333/api
+
+# iOS Simulator ou web
+# EXPO_PUBLIC_API_URL=http://localhost:3333/api
 ```
 
-## Uso com Docker
+Para descobrir seu IP local:
 
-O Docker é usado para subir o **PostgreSQL** do projeto.  
-API e mobile continuam rodando localmente com `npm`.
+```bash
+# Linux/Mac
+ip route get 1 | awk '{print $7; exit}'
 
-### 1) Subir o banco
+# Windows
+ipconfig
+```
+
+---
+
+### 4. Subir o banco de dados
 
 ```bash
 npm run db:up
 ```
 
-Esse comando executa `docker compose up -d postgres` usando o `docker-compose.yml`.
+Aguarde o container ficar saudável (leva ~5 segundos):
 
-### 2) Preparar schema e dados
+```bash
+npm run db:logs
+# procure por: "database system is ready to accept connections"
+```
+
+---
+
+### 5. Rodar as migrations
 
 ```bash
 npm run db:migrate
+```
+
+Isso aplica todas as migrations em `apps/api/drizzle/` e cria as tabelas no banco.
+
+---
+
+### 6. Popular o banco com dados iniciais (seed)
+
+```bash
 npm run db:seed
 ```
 
-### 3) Subir aplicação
+Cria:
+- Perfis: `CLIENTE`, `PROFISSIONAL`, `ADMIN`
+- 10 categorias de serviço (Elétrica, Hidráulica, Marcenaria, etc.)
+- 3 usuários de demonstração (senha `123456`):
+  - `cliente` — perfil CLIENTE
+  - `profissional` — perfil PROFISSIONAL
+  - `admin` — perfil ADMIN
 
-API:
+---
+
+### 7. Iniciar a API
 
 ```bash
 npm run dev:api
 ```
 
-Mobile:
+A API sobe em `http://localhost:3333/api`.
+
+---
+
+### 8. Iniciar o app mobile
+
+Em outro terminal:
 
 ```bash
 npm run dev:mobile
 ```
 
-### 4) Logs e parada
+Abre o Expo Dev Server. Escaneie o QR code com o **Expo Go** no celular, ou pressione:
+- `a` — abre no emulador Android
+- `i` — abre no simulador iOS (Mac)
+- `w` — abre no navegador
 
-Ver logs do PostgreSQL:
+---
 
-```bash
-npm run db:logs
-```
-
-Parar containers:
+## Parar o banco
 
 ```bash
 npm run db:down
 ```
 
-Se quiser remover também o volume de dados:
+Para remover também o volume de dados (apaga tudo do banco):
 
 ```bash
 docker compose down -v
 ```
 
-### Compose alternativo (`docker-compose.db.yml`)
+---
 
-Se preferir usar o compose dedicado do banco:
+## Perfis de usuário
 
-```bash
-docker compose -f docker-compose.db.yml up -d
-docker compose -f docker-compose.db.yml down
-```
+| Role | Acesso |
+|---|---|
+| `CLIENTE` | Visualiza profissionais, edita próprio perfil |
+| `PROFISSIONAL` | Gerencia perfil, bio, especialidades e portfólio |
+| `ADMIN` | CRUD de usuários, categorias, perfis, UFs e cidades |
 
-### Troubleshooting rápido
+---
 
-- Erro de porta ocupada: altere `POSTGRES_PORT` e ajuste `DATABASE_URL` em `apps/api/.env`.
-- API não conecta no banco: confirme se o container está saudável com `npm run db:logs`.
-- Se mudou variáveis de ambiente do banco, recrie o serviço com `npm run db:down` e depois `npm run db:up`.
+## Endpoints da API
 
-## Usuários de demonstração (seed)
-
-Todos com senha `123456`:
-- `leitor`
-- `autor`
-- `editor`
-- `superadmin`
-
-## RBAC implementado
-
-### LEITOR
-- visualiza notícias publicadas
-- acessa home pública/autenticada
-- comenta em notícias publicadas
-- edita dados próprios (`/usuarios/me`)
-
-### AUTOR
-- cria notícia própria (forçada para `RASCUNHO`)
-- visualiza publicadas + próprias
-- edita apenas notícia própria em `RASCUNHO`
-- não publica/despublica
-
-### EDITOR
-- visualiza todas as notícias
-- edita qualquer notícia
-- publica/despublica (`PATCH /noticias/:id/status`)
-
-### SUPERADMIN
-- tudo do EDITOR
-- exclui notícia
-- CRUD administrativo de:
-  - tags
-  - perfis
-  - UF
-  - cidades
-  - usuários
-  - gerenciamento de comentários
-
-## Endpoints implementados
-
-### Auth
-- `POST /api/auth/cadastro`
-- `POST /api/auth/login`
-- `GET /api/auth/me`
-
-### Notícias
-- `GET /api/noticias` (público + comportamento por token/perfil)
-- `GET /api/noticias?tagId=<id>`
-- `GET /api/noticias/:id`
-- `GET /api/noticias/minhas` (auth)
-- `GET /api/noticias/painel` (EDITOR/SUPERADMIN)
-- `POST /api/noticias` (AUTOR/EDITOR/SUPERADMIN)
-- `PUT /api/noticias/:id`
-- `PATCH /api/noticias/:id/status` (EDITOR/SUPERADMIN)
-- `DELETE /api/noticias/:id` (SUPERADMIN)
-
-### Comentários
-- `GET /api/comentarios`
-- `GET /api/comentarios?noticiaId=<id>`
-- `POST /api/comentarios` (auth)
-- `PUT /api/comentarios/:id` (dono/SUPERADMIN)
-- `DELETE /api/comentarios/:id` (dono/SUPERADMIN)
-
-### Tags
-- `GET /api/tags`
-- `GET /api/tags/:id`
-- `POST /api/tags` (SUPERADMIN)
-- `PUT /api/tags/:id` (SUPERADMIN)
-- `DELETE /api/tags/:id` (SUPERADMIN)
-
-### Perfis
-- `GET /api/perfis`
-- `POST /api/perfis` (SUPERADMIN)
-- `PUT /api/perfis/:id` (SUPERADMIN)
-- `DELETE /api/perfis/:id` (SUPERADMIN)
-
-### UF
-- `GET /api/ufs`
-- `POST /api/ufs` (SUPERADMIN)
-- `PUT /api/ufs/:id` (SUPERADMIN)
-- `DELETE /api/ufs/:id` (SUPERADMIN)
-
-### Cidades
-- `GET /api/cidades`
-- `GET /api/cidades?ufId=<id>`
-- `POST /api/cidades` (SUPERADMIN)
-- `PUT /api/cidades/:id` (SUPERADMIN)
-- `DELETE /api/cidades/:id` (SUPERADMIN)
+### Autenticação
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| POST | `/auth/cadastro` | — | Cadastro (`CLIENTE` ou `PROFISSIONAL`) |
+| POST | `/auth/login` | — | Login, retorna JWT |
+| GET | `/auth/me` | JWT | Dados do usuário logado |
 
 ### Usuários
-- `GET /api/usuarios/me` (auth)
-- `PUT /api/usuarios/me` (auth)
-- `GET /api/usuarios` (SUPERADMIN)
-- `GET /api/usuarios/:id` (SUPERADMIN)
-- `POST /api/usuarios` (SUPERADMIN)
-- `PUT /api/usuarios/:id` (SUPERADMIN)
-- `DELETE /api/usuarios/:id` (SUPERADMIN)
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| GET | `/usuarios/me` | JWT | Meus dados |
+| PUT | `/usuarios/me` | JWT | Atualizar nome, email, telefone, senha |
+| GET | `/usuarios` | ADMIN | Listar todos |
+| POST | `/usuarios` | ADMIN | Criar usuário |
+| PUT | `/usuarios/:id` | ADMIN | Editar usuário |
+| DELETE | `/usuarios/:id` | ADMIN | Remover usuário |
 
-## Fluxos mobile por perfil
+### Perfil do Cliente
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| GET | `/perfil-cliente/me` | JWT | Meu perfil de cliente |
+| PUT | `/perfil-cliente/me` | JWT | Atualizar preferências |
+| GET | `/perfil-cliente/:userId` | — | Perfil público de um cliente |
 
-### Público (sem login)
-- Home pública
-- Detalhe público de notícia publicada
-- Busca por tag
-- Login
-- Cadastro
+### Perfil do Profissional
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| GET | `/perfil-profissional` | — | Listar profissionais |
+| GET | `/perfil-profissional/me` | JWT | Meu perfil profissional |
+| PUT | `/perfil-profissional/me` | JWT | Atualizar bio, cidade, especialidades |
+| GET | `/perfil-profissional/:userId` | — | Perfil público de um profissional |
+| POST | `/perfil-profissional/portfolio` | JWT | Adicionar imagem ao portfólio |
+| DELETE | `/perfil-profissional/portfolio/:imageId` | JWT | Remover imagem do portfólio |
 
-### LEITOR
-- Meu perfil (visualizar/editar)
-- Comentar em notícia
+### Categorias de Serviço
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| GET | `/categorias` | — | Listar categorias |
+| GET | `/categorias/:id` | — | Detalhes de uma categoria |
+| POST | `/categorias` | ADMIN | Criar categoria |
+| PUT | `/categorias/:id` | ADMIN | Editar categoria |
+| DELETE | `/categorias/:id` | ADMIN | Remover categoria |
 
-### AUTOR
-- Minhas notícias
-- Nova notícia
-- Edição de notícia própria em rascunho
+### Localização
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| GET | `/ufs` | — | Listar estados |
+| GET | `/cidades?ufId=` | — | Listar cidades (filtro por UF) |
+| POST/PUT/DELETE | `/ufs`, `/cidades` | ADMIN | Gerenciar localidades |
 
-### EDITOR
-- Painel editorial
-- Editar qualquer notícia
-- Publicar/despublicar
+### Perfis (roles)
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| GET | `/perfis` | — | Listar perfis |
+| POST/PUT/DELETE | `/perfis` | ADMIN | Gerenciar perfis |
 
-### SUPERADMIN
-- Painel admin
-- CRUD notícias (inclui exclusão)
-- CRUD tags, perfis, UF, cidades, usuários
-- Gerenciar comentários
+---
 
 ## Scripts úteis
 
-### Raiz
-- `npm run dev:api`
-- `npm run dev:mobile`
-- `npm run build:api`
-- `npm run lint:api`
-- `npm run typecheck:mobile`
-- `npm run db:up`
-- `npm run db:migrate`
-- `npm run db:seed`
-- `npm run db:down`
+```bash
+# Desenvolvimento
+npm run dev:api          # Inicia API com hot-reload
+npm run dev:mobile       # Inicia Expo Dev Server
 
-## Matriz final de conformidade (Entrega 3)
+# Build e qualidade
+npm run build:api        # Build de produção da API
+npm run lint:api         # Lint da API
+npm run typecheck:mobile # Typecheck do mobile
 
-| Requisito da entrega | Status | Evidência |
-|---|---|---|
-| RBAC LEITOR/AUTOR/EDITOR/SUPERADMIN | ✅ Conforme | `apps/api/src/modules/news/news.service.ts`, `apps/api/src/common/guards/roles.guard.ts` |
-| Proteger rascunho no detalhe público | ✅ Conforme | `apps/api/src/modules/news/news.service.ts` (`canViewNews`) |
-| CRUD notícias com regras por perfil | ✅ Conforme | `apps/api/src/modules/news/news.controller.ts` + `news.service.ts` |
-| CRUD comentários | ✅ Conforme | `apps/api/src/modules/comments/*` |
-| CRUD tags | ✅ Conforme | `apps/api/src/modules/tags/*` |
-| CRUD perfis | ✅ Conforme | `apps/api/src/modules/profiles/*` |
-| CRUD UF | ✅ Conforme | `apps/api/src/modules/ufs/*` |
-| CRUD cidades | ✅ Conforme | `apps/api/src/modules/cities/*` |
-| CRUD usuários admin + perfil próprio | ✅ Conforme | `apps/api/src/modules/users/*` |
-| Associação N:N notícia-tag | ✅ Conforme | `apps/api/src/db/schema.ts` (`newsTags`) + migration `0001_closed_sandman.sql` |
-| Home pública + detalhe público + busca por tag | ✅ Conforme | `apps/mobile/src/screens/HomeScreen.tsx`, `TagSearchScreen.tsx`, `NewsDetailScreen.tsx` |
-| Fluxo LEITOR | ✅ Conforme | `ProfileScreen.tsx`, `NewsDetailScreen.tsx` |
-| Fluxo AUTOR | ✅ Conforme | `MyNewsScreen.tsx`, `NewsFormScreen.tsx` |
-| Fluxo EDITOR | ✅ Conforme | `EditorialPanelScreen.tsx` |
-| Fluxo SUPERADMIN | ✅ Conforme | `AdminPanelScreen.tsx` + `screens/admin/*` |
-| Build API sem erro | ✅ Conforme | `npm run build:api` |
-| Typecheck mobile sem erro | ✅ Conforme | `npm run typecheck:mobile` |
+# Banco de dados
+npm run db:up            # Sobe o PostgreSQL (Docker)
+npm run db:migrate       # Roda as migrations
+npm run db:seed          # Popula o banco com dados iniciais
+npm run db:down          # Para os containers
+npm run db:logs          # Exibe logs do PostgreSQL
+```
+
+---
+
+## Troubleshooting
+
+**API não conecta no banco**
+```bash
+npm run db:logs
+# Verifique se aparece "ready to accept connections"
+```
+
+**Porta 55432 ocupada**
+
+Edite o `docker-compose.yml` e mude `55432` para outra porta, ajuste o `DATABASE_URL` no `.env`.
+
+**Expo não alcança a API no celular físico**
+
+Certifique-se de que o celular e o computador estão na **mesma rede Wi-Fi** e que o `EXPO_PUBLIC_API_URL` usa o IP local da máquina (não `localhost`).
+
+**"Cannot find module" no mobile**
+
+```bash
+cd apps/mobile && npx expo start --clear
+```

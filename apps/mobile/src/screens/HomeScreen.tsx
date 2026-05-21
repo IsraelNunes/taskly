@@ -1,89 +1,30 @@
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useCallback, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import { AppButton } from '../components/AppButton';
-import { EmptyState } from '../components/EmptyState';
-import { LoadingView } from '../components/LoadingView';
-import { NewsCard } from '../components/NewsCard';
-import { newsService } from '../services/news.service';
+import { StyleSheet, Text, View } from 'react-native';
+import { useAuth } from '../hooks/useAuth';
 import { colors, spacing } from '../theme';
-import { AppStackParamList } from '../types/navigation';
-import { NewsSummary } from '../types/news';
 
 export function HomeScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
-  const [items, setItems] = useState<NewsSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadData = useCallback(async (showLoader = true) => {
-    if (showLoader) {
-      setLoading(true);
-    }
-
-    try {
-      const data = await newsService.list();
-      setItems(data);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Não foi possível carregar notícias.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      void loadData();
-    }, [loadData]),
-  );
-
-  if (loading) {
-    return <LoadingView label="Carregando notícias..." />;
-  }
+  const { user } = useAuth();
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Notícias Taskly</Text>
-        <Text style={styles.subtitle}>Atualizações, conteúdos e novidades do projeto.</Text>
-        <AppButton
-          title="Nova notícia"
-          onPress={() => navigation.navigate('NewsForm', {})}
-        />
+      <View style={styles.card}>
+        <Text style={styles.greeting}>Olá, {user?.nome ?? 'visitante'}! 👋</Text>
+        <Text style={styles.subtitle}>
+          {user?.perfil === 'PROFISSIONAL'
+            ? 'Gerencie seu perfil e acompanhe seus serviços.'
+            : user?.perfil === 'CLIENTE'
+              ? 'Encontre os melhores profissionais para o seu serviço.'
+              : 'Bem-vindo ao painel Taskly.'}
+        </Text>
       </View>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      <FlatList
-        data={items}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <NewsCard
-            item={item}
-            onPress={() => navigation.navigate('NewsDetail', { id: item.id })}
-          />
-        )}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => {
-              setRefreshing(true);
-              void loadData(false);
-            }}
-          />
-        }
-        ListEmptyComponent={
-          <EmptyState
-            title="Sem notícias publicadas"
-            description="Crie uma notícia para começar o feed da disciplina."
-          />
-        }
-      />
+      <View style={styles.placeholder}>
+        <Text style={styles.placeholderText}>🚧</Text>
+        <Text style={styles.placeholderLabel}>Em desenvolvimento</Text>
+        <Text style={styles.placeholderDesc}>
+          O feed de serviços estará disponível na próxima fase do projeto.
+        </Text>
+      </View>
     </View>
   );
 }
@@ -92,32 +33,44 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
+    padding: spacing.md,
     gap: spacing.md,
   },
-  header: {
+  card: {
     backgroundColor: colors.surface,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 16,
-    padding: spacing.md,
-    gap: spacing.sm,
+    padding: spacing.lg,
+    gap: spacing.xs,
   },
-  title: {
-    fontSize: 23,
+  greeting: {
+    fontSize: 22,
     fontWeight: '800',
     color: colors.text,
   },
   subtitle: {
     color: colors.textMuted,
+    lineHeight: 22,
   },
-  listContent: {
-    paddingBottom: spacing.xl,
-    gap: spacing.md,
+  placeholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
-  error: {
-    color: colors.danger,
-    fontSize: 13,
+  placeholderText: {
+    fontSize: 48,
+  },
+  placeholderLabel: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  placeholderDesc: {
+    color: colors.textMuted,
+    textAlign: 'center',
+    paddingHorizontal: spacing.xl,
+    lineHeight: 22,
   },
 });

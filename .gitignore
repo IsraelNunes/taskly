@@ -15,5 +15,6 @@ apps/mobile/node_modules
 apps/mobile/.expo
 apps/mobile/dist
 apps/mobile/.env
+.expo
 
 .DS_Store

@@ -1,4 +1,9 @@
-import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+
+enum RegisterProfileRole {
+  CLIENTE = 'CLIENTE',
+  PROFISSIONAL = 'PROFISSIONAL',
+}
 
 export class RegisterDto {
   @IsString()
@@ -17,4 +22,8 @@ export class RegisterDto {
   @MinLength(6)
   @MaxLength(100)
   password!: string;
+
+  @IsOptional()
+  @IsEnum(RegisterProfileRole)
+  perfil?: RegisterProfileRole;
 }

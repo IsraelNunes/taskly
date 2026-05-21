@@ -1,15 +1,11 @@
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 import { AppButton } from '../components/AppButton';
 import { AppInput } from '../components/AppInput';
 import { useAuth } from '../hooks/useAuth';
-import { AuthStackParamList } from '../types/navigation';
 import { colors, spacing } from '../theme';
 
-type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
-
-export function LoginScreen({ navigation }: Props) {
+export function LoginScreen({ navigation }: any) {
   const { signIn } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');

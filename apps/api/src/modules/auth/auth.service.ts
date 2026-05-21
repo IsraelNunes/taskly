@@ -22,29 +22,28 @@ export class AuthService {
       throw new ConflictException('Username já está em uso.');
     }
 
-    const leitorProfile = await this.profilesService.findOrCreate('LEITOR');
+    const requestedProfile = dto.perfil ?? 'CLIENTE';
+    const profile = await this.profilesService.findOrCreate(requestedProfile);
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
-    const user = await this.usersService.create({
+    const user = await this.usersService.createWithProfile({
       nome: dto.nome,
       username: dto.username,
       passwordHash,
-      perfilId: leitorProfile.id,
+      perfilId: profile.id,
+      role: profile.descricao,
     });
 
     const payload: JwtPayload = {
       sub: user.id,
       username: user.username,
-      perfil: leitorProfile.descricao,
+      perfil: profile.descricao,
     };
 
     const accessToken = await this.jwtService.signAsync(payload);
     const publicUser = await this.usersService.findPublicById(user.id);
 
-    return {
-      accessToken,
-      user: publicUser,
-    };
+    return { accessToken, user: publicUser };
   }
 
   async login(dto: LoginDto): Promise<{ accessToken: string; user: unknown }> {
@@ -69,10 +68,7 @@ export class AuthService {
     const accessToken = await this.jwtService.signAsync(payload);
     const publicUser = await this.usersService.findPublicById(user.id);
 
-    return {
-      accessToken,
-      user: publicUser,
-    };
+    return { accessToken, user: publicUser };
   }
 
   async me(userId: string): Promise<unknown> {

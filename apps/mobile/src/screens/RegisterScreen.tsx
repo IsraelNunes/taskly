@@ -1,19 +1,33 @@
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppButton } from '../components/AppButton';
 import { AppInput } from '../components/AppInput';
 import { useAuth } from '../hooks/useAuth';
-import { AuthStackParamList } from '../types/navigation';
 import { colors, spacing } from '../theme';
 
-type Props = NativeStackScreenProps<AuthStackParamList, 'Cadastro'>;
+type RoleOption = 'CLIENTE' | 'PROFISSIONAL';
 
-export function RegisterScreen({ navigation }: Props) {
+const ROLE_OPTIONS: { value: RoleOption; label: string; description: string; icon: string }[] = [
+  {
+    value: 'CLIENTE',
+    label: 'Sou Cliente',
+    description: 'Quero contratar serviços',
+    icon: '🙋',
+  },
+  {
+    value: 'PROFISSIONAL',
+    label: 'Sou Profissional',
+    description: 'Quero oferecer meus serviços',
+    icon: '🔧',
+  },
+];
+
+export function RegisterScreen({ navigation }: any) {
   const { signUp } = useAuth();
   const [nome, setNome] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [perfil, setPerfil] = useState<RoleOption>('CLIENTE');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -22,7 +36,7 @@ export function RegisterScreen({ navigation }: Props) {
     setLoading(true);
 
     try {
-      await signUp({ nome, username, password });
+      await signUp({ nome, username, password, perfil });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível criar a conta.');
     } finally {
@@ -36,12 +50,33 @@ export function RegisterScreen({ navigation }: Props) {
       style={styles.container}
     >
       <View style={styles.header}>
-        <Text style={styles.title}>Criar conta</Text>
-        <Text style={styles.subtitle}>Seu perfil inicial será LEITOR, pronto para o Taskly.</Text>
+        <Text style={styles.title}>Crie sua conta</Text>
+        <Text style={styles.subtitle}>Como você quer usar o Taskly?</Text>
+      </View>
+
+      <View style={styles.roleRow}>
+        {ROLE_OPTIONS.map((option) => {
+          const active = perfil === option.value;
+          return (
+            <Pressable
+              key={option.value}
+              style={[styles.roleCard, active && styles.roleCardActive]}
+              onPress={() => setPerfil(option.value)}
+            >
+              <Text style={styles.roleIcon}>{option.icon}</Text>
+              <Text style={[styles.roleLabel, active && styles.roleLabelActive]}>
+                {option.label}
+              </Text>
+              <Text style={[styles.roleDesc, active && styles.roleDescActive]}>
+                {option.description}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       <View style={styles.form}>
-        <AppInput label="Nome" value={nome} onChangeText={setNome} placeholder="Seu nome" />
+        <AppInput label="Nome completo" value={nome} onChangeText={setNome} placeholder="Seu nome" />
         <AppInput
           label="Username"
           value={username}
@@ -69,11 +104,11 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing.lg,
     justifyContent: 'center',
-    gap: spacing.xl,
+    gap: spacing.lg,
     backgroundColor: colors.background,
   },
   header: {
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   title: {
     fontSize: 28,
@@ -82,7 +117,45 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: colors.textMuted,
-    lineHeight: 21,
+    fontSize: 15,
+  },
+  roleRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  roleCard: {
+    flex: 1,
+    borderWidth: 2,
+    borderColor: colors.border,
+    borderRadius: 16,
+    padding: spacing.md,
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.surface,
+  },
+  roleCardActive: {
+    borderColor: colors.primary,
+    backgroundColor: '#FFF3EE',
+  },
+  roleIcon: {
+    fontSize: 28,
+  },
+  roleLabel: {
+    fontWeight: '700',
+    fontSize: 14,
+    color: colors.text,
+    textAlign: 'center',
+  },
+  roleLabelActive: {
+    color: colors.primary,
+  },
+  roleDesc: {
+    fontSize: 12,
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
+  roleDescActive: {
+    color: colors.primary,
   },
   form: {
     gap: spacing.md,

@@ -5,16 +5,16 @@ const TOKEN_KEY = '@taskly/token';
 const USER_KEY = '@taskly/user';
 
 export async function saveAuthSession(token: string, user: AuthUser): Promise<void> {
-  await AsyncStorage.setMany({
-    [TOKEN_KEY]: token,
-    [USER_KEY]: JSON.stringify(user),
-  });
+  await AsyncStorage.multiSet([
+    [TOKEN_KEY, token],
+    [USER_KEY, JSON.stringify(user)],
+  ]);
 }
 
 export async function loadAuthSession(): Promise<{ token: string | null; user: AuthUser | null }> {
-  const values = await AsyncStorage.getMany([TOKEN_KEY, USER_KEY]);
-  const token = values[TOKEN_KEY] ?? null;
-  const serializedUser = values[USER_KEY] ?? null;
+  const values = await AsyncStorage.multiGet([TOKEN_KEY, USER_KEY]);
+  const token = values.find(([key]) => key === TOKEN_KEY)?.[1] ?? null;
+  const serializedUser = values.find(([key]) => key === USER_KEY)?.[1] ?? null;
 
   return {
     token,
@@ -23,5 +23,5 @@ export async function loadAuthSession(): Promise<{ token: string | null; user: A
 }
 
 export async function clearAuthSession(): Promise<void> {
-  await AsyncStorage.removeMany([TOKEN_KEY, USER_KEY]);
+  await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY]);
 }

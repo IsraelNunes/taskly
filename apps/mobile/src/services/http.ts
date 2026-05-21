@@ -36,23 +36,37 @@ const buildMessage = (data: unknown, fallback: string): string => {
 };
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, {
-    method: options.method ?? 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
-    },
-    body: options.body ? JSON.stringify(options.body) : undefined,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-  const text = await response.text();
-  const data = text ? (JSON.parse(text) as unknown) : null;
+  try {
+    const response = await fetch(`${API_URL}${path}`, {
+      method: options.method ?? 'GET',
+      headers: {
+        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
+      },
+      body: options.body ? JSON.stringify(options.body) : undefined,
+      signal: controller.signal,
+    });
 
-  if (!response.ok) {
-    throw new ApiError(buildMessage(data, 'Erro ao processar solicitação.'), response.status, data);
+    const text = await response.text();
+    const data = text ? (JSON.parse(text) as unknown) : null;
+
+    if (!response.ok) {
+      throw new ApiError(buildMessage(data, 'Erro ao processar solicitação.'), response.status, data);
+    }
+
+    return data as T;
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new ApiError(`Servidor não respondeu (URL: ${API_URL}). Verifique EXPO_PUBLIC_API_URL.`, 0);
+    }
+    throw new ApiError('Não foi possível conectar à API. Verifique a URL e sua rede.', 0);
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return data as T;
 }
 
 export { API_URL };
