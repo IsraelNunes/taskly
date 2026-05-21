@@ -36,7 +36,6 @@ export function EditProfessionalProfileScreen({ navigation }: any) {
 
   useEffect(() => {
     if (!token) return;
-
     Promise.all([professionalProfileService.getMe(token), categoryService.list()])
       .then(([prof, cats]) => {
         setProfile(prof);
@@ -56,10 +55,8 @@ export function EditProfessionalProfileScreen({ navigation }: any) {
 
   const save = async () => {
     if (!token) return;
-
     setError(null);
     setLoading(true);
-
     try {
       await Promise.all([
         userService.updateMe(
@@ -72,14 +69,10 @@ export function EditProfessionalProfileScreen({ navigation }: any) {
           token,
         ),
         professionalProfileService.updateMe(
-          {
-            bio: bio || undefined,
-            categoryIds: selectedCategories,
-          },
+          { bio: bio || undefined, categoryIds: selectedCategories },
           token,
         ),
       ]);
-
       await refreshUser();
       navigation.goBack();
     } catch (err) {
@@ -92,7 +85,7 @@ export function EditProfessionalProfileScreen({ navigation }: any) {
   if (loadingData) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={colors.secondary} />
       </View>
     );
   }
@@ -102,62 +95,88 @@ export function EditProfessionalProfileScreen({ navigation }: any) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.wrapper}
     >
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Editar perfil profissional</Text>
-
-        <AppInput label="Nome completo" value={nome} onChangeText={setNome} placeholder="Seu nome" />
-        <AppInput
-          label="E-mail"
-          value={email}
-          onChangeText={setEmail}
-          placeholder="seu@email.com"
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        <AppInput
-          label="Telefone"
-          value={telefone}
-          onChangeText={setTelefone}
-          placeholder="(00) 00000-0000"
-          keyboardType="phone-pad"
-        />
-        <AppInput
-          label="Bio"
-          value={bio}
-          onChangeText={setBio}
-          placeholder="Fale sobre você e seus serviços..."
-          multiline
-          numberOfLines={4}
-        />
-
-        <Text style={styles.sectionLabel}>Especialidades</Text>
-        <View style={styles.tagsRow}>
-          {categories.map((cat) => {
-            const active = selectedCategories.includes(cat.id);
-            return (
-              <Pressable
-                key={cat.id}
-                style={[styles.tag, active && styles.tagActive]}
-                onPress={() => toggleCategory(cat.id)}
-              >
-                <Text style={[styles.tagText, active && styles.tagTextActive]}>{cat.nome}</Text>
-              </Pressable>
-            );
-          })}
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Dados pessoais</Text>
+          <View style={styles.card}>
+            <AppInput
+              label="Nome completo"
+              value={nome}
+              onChangeText={setNome}
+              placeholder="Seu nome"
+            />
+            <AppInput
+              label="E-mail"
+              value={email}
+              onChangeText={setEmail}
+              placeholder="seu@email.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <AppInput
+              label="Telefone"
+              value={telefone}
+              onChangeText={setTelefone}
+              placeholder="(00) 00000-0000"
+              keyboardType="phone-pad"
+            />
+          </View>
         </View>
 
-        <AppInput
-          label="Nova senha (opcional)"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          placeholder="Deixe vazio para manter"
-        />
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Perfil profissional</Text>
+          <View style={styles.card}>
+            <AppInput
+              label="Bio"
+              value={bio}
+              onChangeText={setBio}
+              placeholder="Fale sobre você, sua experiência e serviços..."
+              multiline
+              numberOfLines={4}
+              style={styles.bioInput}
+            />
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Especialidades</Text>
+          <View style={styles.chipsCard}>
+            {categories.map((cat) => {
+              const active = selectedCategories.includes(cat.id);
+              return (
+                <Pressable
+                  key={cat.id}
+                  style={[styles.chip, active && styles.chipActive]}
+                  onPress={() => toggleCategory(cat.id)}
+                >
+                  <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                    {cat.nome}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Segurança</Text>
+          <View style={styles.card}>
+            <AppInput
+              label="Nova senha (opcional)"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              placeholder="Deixe vazio para manter a senha atual"
+            />
+          </View>
+        </View>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <AppButton title="Salvar" onPress={() => void save()} loading={loading} />
-        <AppButton title="Cancelar" variant="ghost" onPress={() => navigation.goBack()} />
+        <View style={styles.actions}>
+          <AppButton title="Salvar alterações" onPress={() => void save()} loading={loading} />
+          <AppButton title="Cancelar" variant="ghost" onPress={() => navigation.goBack()} />
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -172,49 +191,73 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.background,
   },
-  container: {
+  scroll: {
     padding: spacing.lg,
-    gap: spacing.md,
+    gap: spacing.lg,
+    paddingBottom: spacing.xl,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: spacing.sm,
+  section: {
+    gap: spacing.sm,
   },
   sectionLabel: {
+    fontSize: 13,
     fontWeight: '700',
-    color: colors.text,
-    fontSize: 14,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    paddingHorizontal: 4,
   },
-  tagsRow: {
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    gap: spacing.md,
+  },
+  bioInput: {
+    minHeight: 96,
+    paddingTop: 12,
+    textAlignVertical: 'top',
+  },
+  chipsCard: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.xs,
-  },
-  tag: {
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
     borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+  },
+  chip: {
+    borderWidth: 1.5,
     borderColor: colors.border,
     borderRadius: 999,
     paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    backgroundColor: colors.background,
   },
-  tagActive: {
+  chipActive: {
     borderColor: colors.secondary,
     backgroundColor: colors.secondaryLight,
   },
-  tagText: {
-    color: colors.text,
+  chipText: {
+    color: colors.textMuted,
     fontSize: 13,
     fontWeight: '600',
   },
-  tagTextActive: {
+  chipTextActive: {
     color: colors.secondary,
   },
   error: {
     color: colors.danger,
     fontSize: 13,
+    textAlign: 'center',
+  },
+  actions: {
+    gap: spacing.sm,
   },
 });

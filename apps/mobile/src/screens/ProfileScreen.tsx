@@ -1,28 +1,21 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppButton } from '../components/AppButton';
 import { useAuth } from '../hooks/useAuth';
 import { clientProfileService } from '../services/client-profile.service';
 import { professionalProfileService } from '../services/professional-profile.service';
-import { ClientProfile, ProfessionalProfile } from '../types/profiles';
 import { colors, spacing } from '../theme';
+import { ClientProfile, ProfessionalProfile } from '../types/profiles';
 
 export function ProfileScreen({ navigation }: any) {
-  const { user, token, signOut } = useAuth();
+  const { user } = useAuth();
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
-  if (user.perfil === 'CLIENTE') {
-    return <ClientProfileView navigation={navigation} />;
-  }
-
-  if (user.perfil === 'PROFISSIONAL') {
-    return <ProfessionalProfileView navigation={navigation} />;
-  }
-
-  return <AdminProfileView navigation={navigation} />;
+  if (user.perfil === 'PROFISSIONAL') return <ProfessionalProfileView navigation={navigation} />;
+  if (user.perfil === 'ADMIN') return <AdminProfileView navigation={navigation} />;
+  return <ClientProfileView navigation={navigation} />;
 }
 
 function ClientProfileView({ navigation }: any) {
@@ -47,29 +40,34 @@ function ClientProfileView({ navigation }: any) {
     );
   }
 
+  const initial = user?.nome?.[0]?.toUpperCase() ?? '?';
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.avatarPlaceholder}>
-        <Text style={styles.avatarInitial}>{user?.nome?.[0]?.toUpperCase() ?? '?'}</Text>
-      </View>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <LinearGradient colors={[colors.primary, '#E5532B']} style={styles.heroBand}>
+        <View style={styles.avatarRing}>
+          <View style={[styles.avatar, styles.avatarClient]}>
+            <Text style={styles.avatarInitial}>{initial}</Text>
+          </View>
+        </View>
+        <Text style={styles.heroName}>{user?.nome}</Text>
+        <View style={styles.heroBadge}>
+          <Text style={styles.heroBadgeText}>Cliente</Text>
+        </View>
+      </LinearGradient>
 
-      <Text style={styles.name}>{user?.nome}</Text>
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>Cliente</Text>
-      </View>
+      <View style={styles.body}>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Informações</Text>
+          <InfoRow label="Username" value={`@${user?.username}`} />
+          <InfoRow label="E-mail" value={user?.email ?? '—'} />
+          <InfoRow label="Telefone" value={user?.telefone ?? '—'} />
+          <InfoRow label="Cidade" value={user?.cidade ?? '—'} />
+        </View>
 
-      <View style={styles.card}>
-        <InfoRow label="Username" value={`@${user?.username}`} />
-        <InfoRow label="E-mail" value={user?.email ?? '—'} />
-        <InfoRow label="Telefone" value={user?.telefone ?? '—'} />
-        <InfoRow label="Cidade" value={user?.cidade ?? '—'} />
+        <AppButton title="Editar perfil" onPress={() => navigation.navigate('EditClientProfile')} />
+        <AppButton title="Sair da conta" variant="danger" onPress={() => void signOut()} />
       </View>
-
-      <AppButton
-        title="Editar perfil"
-        onPress={() => navigation.navigate('EditClientProfile')}
-      />
-      <AppButton title="Sair" variant="danger" onPress={() => void signOut()} />
     </ScrollView>
   );
 }
@@ -91,97 +89,120 @@ function ProfessionalProfileView({ navigation }: any) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={colors.secondary} />
       </View>
     );
   }
 
+  const initial = user?.nome?.[0]?.toUpperCase() ?? '?';
   const rating = parseFloat(profile?.avaliacaoMedia ?? '0');
+  const stars = Math.round(rating);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.avatarPlaceholder}>
-        <Text style={styles.avatarInitial}>{user?.nome?.[0]?.toUpperCase() ?? '?'}</Text>
-      </View>
-
-      <Text style={styles.name}>{user?.nome}</Text>
-      <View style={[styles.badge, styles.badgeProfessional]}>
-        <Text style={styles.badgeText}>Profissional</Text>
-      </View>
-
-      {profile?.isVerified ? (
-        <View style={[styles.badge, styles.badgeVerified]}>
-          <Text style={styles.badgeText}>✓ Verificado</Text>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <LinearGradient colors={[colors.secondary, '#094F55']} style={styles.heroBand}>
+        <View style={styles.avatarRing}>
+          <View style={[styles.avatar, styles.avatarProfessional]}>
+            <Text style={styles.avatarInitial}>{initial}</Text>
+          </View>
         </View>
-      ) : null}
+        <View style={styles.heroNameRow}>
+          <Text style={styles.heroName}>{user?.nome}</Text>
+          {profile?.isVerified ? <Text style={styles.verifiedBadge}>✓ Verificado</Text> : null}
+        </View>
+        <View style={styles.heroBadge}>
+          <Text style={styles.heroBadgeText}>Profissional</Text>
+        </View>
+        <View style={styles.ratingRow}>
+          <Text style={styles.ratingStars}>
+            {Array.from({ length: 5 }, (_, i) => (i < stars ? '★' : '☆')).join('')}
+          </Text>
+          <Text style={styles.ratingText}>
+            {rating.toFixed(1)} ({profile?.totalAvaliacoes ?? 0})
+          </Text>
+        </View>
+      </LinearGradient>
 
-      <View style={styles.ratingRow}>
-        <Text style={styles.ratingValue}>{rating.toFixed(1)}</Text>
-        <Text style={styles.ratingStar}>★</Text>
-        <Text style={styles.ratingCount}>({profile?.totalAvaliacoes ?? 0} avaliações)</Text>
-      </View>
-
-      <View style={styles.card}>
-        <InfoRow label="Username" value={`@${user?.username}`} />
-        <InfoRow label="E-mail" value={user?.email ?? '—'} />
-        <InfoRow label="Telefone" value={user?.telefone ?? '—'} />
-        <InfoRow label="Cidade" value={user?.cidade ?? profile?.cidade ?? '—'} />
+      <View style={styles.body}>
         {profile?.bio ? (
-          <View style={styles.bioRow}>
-            <Text style={styles.infoLabel}>Bio</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Sobre mim</Text>
             <Text style={styles.bioText}>{profile.bio}</Text>
           </View>
         ) : null}
-      </View>
 
-      {profile?.categories && profile.categories.length > 0 ? (
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Especialidades</Text>
-          <View style={styles.tagsRow}>
-            {profile.categories.map((cat) => (
-              <View key={cat.id} style={styles.tag}>
-                <Text style={styles.tagText}>{cat.nome}</Text>
-              </View>
-            ))}
+        {profile?.categories && profile.categories.length > 0 ? (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Especialidades</Text>
+            <View style={styles.chipsRow}>
+              {profile.categories.map((cat) => (
+                <View key={cat.id} style={styles.chip}>
+                  <Text style={styles.chipText}>{cat.nome}</Text>
+                </View>
+              ))}
+            </View>
           </View>
-        </View>
-      ) : null}
+        ) : null}
 
-      {profile?.portfolio && profile.portfolio.length > 0 ? (
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Portfólio ({profile.portfolio.length} imagens)</Text>
+          <Text style={styles.cardTitle}>Contato</Text>
+          <InfoRow label="Username" value={`@${user?.username}`} />
+          <InfoRow label="E-mail" value={user?.email ?? '—'} />
+          <InfoRow label="Telefone" value={user?.telefone ?? '—'} />
+          <InfoRow label="Cidade" value={user?.cidade ?? profile?.cidade ?? '—'} />
         </View>
-      ) : null}
 
-      <AppButton
-        title="Editar perfil"
-        onPress={() => navigation.navigate('EditProfessionalProfile')}
-      />
-      <AppButton title="Sair" variant="danger" onPress={() => void signOut()} />
+        {profile?.portfolio && profile.portfolio.length > 0 ? (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Portfólio</Text>
+            <Text style={styles.portfolioCount}>{profile.portfolio.length} imagens</Text>
+          </View>
+        ) : null}
+
+        <AppButton
+          title="Editar perfil"
+          onPress={() => navigation.navigate('EditProfessionalProfile')}
+        />
+        <AppButton title="Sair da conta" variant="danger" onPress={() => void signOut()} />
+      </View>
     </ScrollView>
   );
 }
 
 function AdminProfileView({ navigation }: any) {
   const { user, signOut } = useAuth();
+  const initial = user?.nome?.[0]?.toUpperCase() ?? 'A';
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={[styles.avatarPlaceholder, styles.avatarAdmin]}>
-        <Text style={styles.avatarInitial}>{user?.nome?.[0]?.toUpperCase() ?? 'A'}</Text>
-      </View>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <LinearGradient colors={['#1A3A5C', '#122840']} style={styles.heroBand}>
+        <View style={styles.avatarRing}>
+          <View style={[styles.avatar, styles.avatarAdmin]}>
+            <Text style={styles.avatarInitial}>{initial}</Text>
+          </View>
+        </View>
+        <Text style={styles.heroName}>{user?.nome}</Text>
+        <View style={[styles.heroBadge, styles.heroBadgeAdmin]}>
+          <Text style={styles.heroBadgeText}>Administrador</Text>
+        </View>
+      </LinearGradient>
 
-      <Text style={styles.name}>{user?.nome}</Text>
-      <View style={[styles.badge, styles.badgeAdmin]}>
-        <Text style={styles.badgeText}>Admin</Text>
-      </View>
+      <View style={styles.body}>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Conta</Text>
+          <InfoRow label="Username" value={`@${user?.username}`} />
+          <InfoRow label="E-mail" value={user?.email ?? '—'} />
+        </View>
 
-      <View style={styles.card}>
-        <InfoRow label="Username" value={`@${user?.username}`} />
-        <InfoRow label="E-mail" value={user?.email ?? '—'} />
-      </View>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Painel administrativo</Text>
+          <Text style={styles.adminHint}>
+            Use as abas abaixo para gerenciar usuários e categorias do sistema.
+          </Text>
+        </View>
 
-      <AppButton title="Sair" variant="danger" onPress={() => void signOut()} />
+        <AppButton title="Sair da conta" variant="danger" onPress={() => void signOut()} />
+      </View>
     </ScrollView>
   );
 }
@@ -200,54 +221,80 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  content: {
-    padding: spacing.md,
-    gap: spacing.md,
-    alignItems: 'center',
-  },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarPlaceholder: {
+  heroBand: {
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xl + 16,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  avatarRing: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+  },
+  avatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    justifyContent: 'center',
+  },
+  avatarClient: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  avatarProfessional: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   avatarAdmin: {
-    backgroundColor: colors.secondary,
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
   avatarInitial: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '800',
     color: '#FFF',
   },
-  name: {
+  heroNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  heroName: {
     fontSize: 22,
     fontWeight: '800',
-    color: colors.text,
+    color: '#FFF',
+    textAlign: 'center',
   },
-  badge: {
-    backgroundColor: colors.primary,
+  verifiedBadge: {
+    backgroundColor: colors.success,
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: '700',
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  heroBadge: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 999,
     paddingVertical: 4,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
   },
-  badgeProfessional: {
-    backgroundColor: colors.secondary,
+  heroBadgeAdmin: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
-  badgeVerified: {
-    backgroundColor: colors.success,
-  },
-  badgeAdmin: {
-    backgroundColor: colors.secondary,
-  },
-  badgeText: {
+  heroBadgeText: {
     color: '#FFF',
     fontWeight: '700',
     fontSize: 12,
@@ -255,43 +302,47 @@ const styles = StyleSheet.create({
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing.xs,
+    marginTop: 2,
   },
-  ratingValue: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  ratingStar: {
-    fontSize: 18,
+  ratingStars: {
+    fontSize: 16,
     color: '#F5A623',
+    letterSpacing: 1,
   },
-  ratingCount: {
+  ratingText: {
     fontSize: 13,
-    color: colors.textMuted,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '600',
+  },
+  body: {
+    marginTop: -20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    backgroundColor: colors.background,
+    padding: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.md,
   },
   card: {
-    width: '100%',
+    backgroundColor: colors.surface,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 16,
-    backgroundColor: colors.surface,
     padding: spacing.md,
     gap: spacing.sm,
   },
-  sectionTitle: {
-    fontWeight: '700',
-    color: colors.text,
+  cardTitle: {
     fontSize: 14,
-    marginBottom: spacing.xs,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: 2,
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-  },
-  bioRow: {
-    gap: 4,
+    paddingVertical: 2,
   },
   infoLabel: {
     color: colors.textMuted,
@@ -304,26 +355,36 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     flexShrink: 1,
     textAlign: 'right',
+    paddingLeft: spacing.sm,
   },
   bioText: {
     color: colors.text,
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 14,
+    lineHeight: 22,
   },
-  tagsRow: {
+  chipsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.xs,
   },
-  tag: {
+  chip: {
     backgroundColor: colors.secondaryLight,
     borderRadius: 999,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
   },
-  tagText: {
+  chipText: {
     color: colors.secondary,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+  portfolioCount: {
+    color: colors.textMuted,
+    fontSize: 13,
+  },
+  adminHint: {
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 20,
   },
 });

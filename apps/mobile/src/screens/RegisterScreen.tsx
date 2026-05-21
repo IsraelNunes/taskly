@@ -1,5 +1,14 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { AppButton } from '../components/AppButton';
 import { AppInput } from '../components/AppInput';
 import { useAuth } from '../hooks/useAuth';
@@ -17,7 +26,7 @@ const ROLE_OPTIONS: { value: RoleOption; label: string; description: string; ico
   {
     value: 'PROFISSIONAL',
     label: 'Sou Profissional',
-    description: 'Quero oferecer meus serviços',
+    description: 'Quero oferecer serviços',
     icon: '🔧',
   },
 ];
@@ -34,7 +43,6 @@ export function RegisterScreen({ navigation }: any) {
   const handleSubmit = async () => {
     setError(null);
     setLoading(true);
-
     try {
       await signUp({ nome, username, password, perfil });
     } catch (err) {
@@ -47,95 +55,115 @@ export function RegisterScreen({ navigation }: any) {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.container}
+      style={styles.wrapper}
     >
-      <View style={styles.header}>
-        <Text style={styles.title}>Crie sua conta</Text>
-        <Text style={styles.subtitle}>Como você quer usar o Taskly?</Text>
-      </View>
+      <ScrollView bounces={false} contentContainerStyle={styles.scroll}>
+        <LinearGradient colors={[colors.secondary, '#094F55']} style={styles.header}>
+          <Text style={styles.headerTitle}>Crie sua conta</Text>
+          <Text style={styles.headerSubtitle}>Como você quer usar o Taskly?</Text>
 
-      <View style={styles.roleRow}>
-        {ROLE_OPTIONS.map((option) => {
-          const active = perfil === option.value;
-          return (
-            <Pressable
-              key={option.value}
-              style={[styles.roleCard, active && styles.roleCardActive]}
-              onPress={() => setPerfil(option.value)}
-            >
-              <Text style={styles.roleIcon}>{option.icon}</Text>
-              <Text style={[styles.roleLabel, active && styles.roleLabelActive]}>
-                {option.label}
-              </Text>
-              <Text style={[styles.roleDesc, active && styles.roleDescActive]}>
-                {option.description}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+          <View style={styles.roleRow}>
+            {ROLE_OPTIONS.map((option) => {
+              const active = perfil === option.value;
+              return (
+                <Pressable
+                  key={option.value}
+                  style={[styles.roleCard, active && styles.roleCardActive]}
+                  onPress={() => setPerfil(option.value)}
+                >
+                  <Text style={styles.roleIcon}>{option.icon}</Text>
+                  <Text style={[styles.roleLabel, active && styles.roleLabelActive]}>
+                    {option.label}
+                  </Text>
+                  <Text style={[styles.roleDesc, active && styles.roleDescActive]}>
+                    {option.description}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </LinearGradient>
 
-      <View style={styles.form}>
-        <AppInput label="Nome completo" value={nome} onChangeText={setNome} placeholder="Seu nome" />
-        <AppInput
-          label="Username"
-          value={username}
-          onChangeText={setUsername}
-          placeholder="seu.username"
-          autoCapitalize="none"
-        />
-        <AppInput
-          label="Senha"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          placeholder="Mínimo 6 caracteres"
-        />
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        <AppButton title="Cadastrar" onPress={handleSubmit} loading={loading} />
-        <AppButton title="Já tenho conta" variant="ghost" onPress={() => navigation.goBack()} />
-      </View>
+        <View style={styles.card}>
+          <AppInput
+            label="Nome completo"
+            value={nome}
+            onChangeText={setNome}
+            placeholder="Seu nome"
+          />
+          <AppInput
+            label="Username"
+            value={username}
+            onChangeText={setUsername}
+            placeholder="seu.username"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <AppInput
+            label="Senha"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            placeholder="Mínimo 6 caracteres"
+          />
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <AppButton title="Cadastrar" onPress={handleSubmit} loading={loading} />
+
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>ou</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <AppButton title="Já tenho conta" variant="ghost" onPress={() => navigation.goBack()} />
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  wrapper: {
     flex: 1,
-    padding: spacing.lg,
-    justifyContent: 'center',
-    gap: spacing.lg,
-    backgroundColor: colors.background,
+    backgroundColor: colors.secondary,
+  },
+  scroll: {
+    flexGrow: 1,
   },
   header: {
-    gap: spacing.xs,
+    paddingTop: 40,
+    paddingBottom: 48,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
   },
-  title: {
-    fontSize: 28,
+  headerTitle: {
+    fontSize: 26,
     fontWeight: '800',
-    color: colors.text,
+    color: '#FFF',
   },
-  subtitle: {
-    color: colors.textMuted,
-    fontSize: 15,
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.75)',
+    marginTop: -spacing.xs,
   },
   roleRow: {
     flexDirection: 'row',
     gap: spacing.md,
+    marginTop: spacing.xs,
   },
   roleCard: {
     flex: 1,
     borderWidth: 2,
-    borderColor: colors.border,
+    borderColor: 'rgba(255,255,255,0.25)',
     borderRadius: 16,
     padding: spacing.md,
     alignItems: 'center',
     gap: spacing.xs,
-    backgroundColor: colors.surface,
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   roleCardActive: {
     borderColor: colors.primary,
-    backgroundColor: '#FFF3EE',
+    backgroundColor: 'rgba(255,107,61,0.15)',
   },
   roleIcon: {
     fontSize: 28,
@@ -143,30 +171,48 @@ const styles = StyleSheet.create({
   roleLabel: {
     fontWeight: '700',
     fontSize: 14,
-    color: colors.text,
+    color: 'rgba(255,255,255,0.85)',
     textAlign: 'center',
   },
   roleLabelActive: {
-    color: colors.primary,
+    color: '#FFF',
   },
   roleDesc: {
-    fontSize: 12,
-    color: colors.textMuted,
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.6)',
     textAlign: 'center',
   },
   roleDescActive: {
-    color: colors.primary,
+    color: 'rgba(255,255,255,0.9)',
   },
-  form: {
+  card: {
+    flex: 1,
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: spacing.xl,
     gap: spacing.md,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
+    marginTop: -24,
   },
   error: {
     color: colors.danger,
     fontSize: 13,
+    textAlign: 'center',
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginVertical: spacing.xs,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: '500',
   },
 });

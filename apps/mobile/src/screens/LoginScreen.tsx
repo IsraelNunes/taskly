@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { AppButton } from '../components/AppButton';
 import { AppInput } from '../components/AppInput';
 import { useAuth } from '../hooks/useAuth';
@@ -15,7 +23,6 @@ export function LoginScreen({ navigation }: any) {
   const handleSubmit = async () => {
     setError(null);
     setLoading(true);
-
     try {
       await signIn({ username, password });
     } catch (err) {
@@ -28,66 +35,122 @@ export function LoginScreen({ navigation }: any) {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.container}
+      style={styles.wrapper}
     >
-      <View style={styles.header}>
-        <Text style={styles.title}>Bem-vindo ao Taskly</Text>
-        <Text style={styles.subtitle}>Entre para acessar notícias e gerenciar publicações.</Text>
-      </View>
+      <ScrollView bounces={false} contentContainerStyle={styles.scroll}>
+        <LinearGradient colors={[colors.secondary, '#094F55']} style={styles.header}>
+          <View style={styles.logoCircle}>
+            <Text style={styles.logoLetter}>T</Text>
+          </View>
+          <Text style={styles.headerTitle}>Bem-vindo de volta</Text>
+          <Text style={styles.headerSubtitle}>Entre para acessar seus serviços</Text>
+        </LinearGradient>
 
-      <View style={styles.form}>
-        <AppInput
-          label="Username"
-          value={username}
-          onChangeText={setUsername}
-          placeholder="seu.username"
-          autoCapitalize="none"
-        />
-        <AppInput
-          label="Senha"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          placeholder="******"
-        />
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        <AppButton title="Entrar" onPress={handleSubmit} loading={loading} />
-        <AppButton title="Criar conta" variant="ghost" onPress={() => navigation.navigate('Cadastro')} />
-      </View>
+        <View style={styles.card}>
+          <AppInput
+            label="Username"
+            value={username}
+            onChangeText={setUsername}
+            placeholder="seu.username"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <AppInput
+            label="Senha"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            placeholder="Sua senha"
+          />
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <AppButton title="Entrar" onPress={handleSubmit} loading={loading} />
+
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>ou</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <AppButton
+            title="Criar conta grátis"
+            variant="ghost"
+            onPress={() => navigation.navigate('Cadastro')}
+          />
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  wrapper: {
     flex: 1,
-    padding: spacing.lg,
-    justifyContent: 'center',
-    gap: spacing.xl,
-    backgroundColor: colors.background,
+    backgroundColor: colors.secondary,
+  },
+  scroll: {
+    flexGrow: 1,
   },
   header: {
-    gap: spacing.sm,
+    paddingTop: 40,
+    paddingBottom: 48,
+    paddingHorizontal: spacing.xl,
+    alignItems: 'center',
+    gap: 10,
   },
-  title: {
-    fontSize: 28,
+  logoCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  logoLetter: {
+    color: '#FFF',
+    fontSize: 26,
+    fontWeight: '900',
+  },
+  headerTitle: {
+    fontSize: 26,
     fontWeight: '800',
-    color: colors.text,
+    color: '#FFF',
+    textAlign: 'center',
   },
-  subtitle: {
-    color: colors.textMuted,
-    lineHeight: 21,
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.75)',
+    textAlign: 'center',
   },
-  form: {
+  card: {
+    flex: 1,
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: spacing.xl,
+    paddingTop: spacing.xl,
     gap: spacing.md,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
+    marginTop: -24,
   },
   error: {
     color: colors.danger,
     fontSize: 13,
+    textAlign: 'center',
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginVertical: spacing.xs,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: '500',
   },
 });

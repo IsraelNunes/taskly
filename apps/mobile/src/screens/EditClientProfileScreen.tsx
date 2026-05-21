@@ -1,5 +1,12 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { AppButton } from '../components/AppButton';
 import { AppInput } from '../components/AppInput';
 import { useAuth } from '../hooks/useAuth';
@@ -17,10 +24,8 @@ export function EditClientProfileScreen({ navigation }: any) {
 
   const save = async () => {
     if (!token) return;
-
     setError(null);
     setLoading(true);
-
     try {
       await userService.updateMe(
         {
@@ -45,37 +50,53 @@ export function EditClientProfileScreen({ navigation }: any) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.wrapper}
     >
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Editar perfil</Text>
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Dados pessoais</Text>
+          <View style={styles.card}>
+            <AppInput
+              label="Nome completo"
+              value={nome}
+              onChangeText={setNome}
+              placeholder="Seu nome"
+            />
+            <AppInput
+              label="E-mail"
+              value={email}
+              onChangeText={setEmail}
+              placeholder="seu@email.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <AppInput
+              label="Telefone"
+              value={telefone}
+              onChangeText={setTelefone}
+              placeholder="(00) 00000-0000"
+              keyboardType="phone-pad"
+            />
+          </View>
+        </View>
 
-        <AppInput label="Nome completo" value={nome} onChangeText={setNome} placeholder="Seu nome" />
-        <AppInput
-          label="E-mail"
-          value={email}
-          onChangeText={setEmail}
-          placeholder="seu@email.com"
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        <AppInput
-          label="Telefone"
-          value={telefone}
-          onChangeText={setTelefone}
-          placeholder="(00) 00000-0000"
-          keyboardType="phone-pad"
-        />
-        <AppInput
-          label="Nova senha (opcional)"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          placeholder="Deixe vazio para manter"
-        />
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Segurança</Text>
+          <View style={styles.card}>
+            <AppInput
+              label="Nova senha (opcional)"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              placeholder="Deixe vazio para manter a senha atual"
+            />
+          </View>
+        </View>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <AppButton title="Salvar" onPress={() => void save()} loading={loading} />
-        <AppButton title="Cancelar" variant="ghost" onPress={() => navigation.goBack()} />
+        <View style={styles.actions}>
+          <AppButton title="Salvar alterações" onPress={() => void save()} loading={loading} />
+          <AppButton title="Cancelar" variant="ghost" onPress={() => navigation.goBack()} />
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -86,18 +107,36 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  container: {
+  scroll: {
     padding: spacing.lg,
-    gap: spacing.md,
+    gap: spacing.lg,
+    paddingBottom: spacing.xl,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: spacing.sm,
+  section: {
+    gap: spacing.sm,
+  },
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    paddingHorizontal: 4,
+  },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    gap: spacing.md,
   },
   error: {
     color: colors.danger,
     fontSize: 13,
+    textAlign: 'center',
+  },
+  actions: {
+    gap: spacing.sm,
   },
 });
