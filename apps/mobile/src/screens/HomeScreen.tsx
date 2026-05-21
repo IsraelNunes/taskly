@@ -4,12 +4,12 @@ import { useAuth } from '../hooks/useAuth';
 import { colors, spacing } from '../theme';
 
 const CATEGORIES = [
-  { icon: '⚡', label: 'Elétrica' },
-  { icon: '🔧', label: 'Hidráulica' },
-  { icon: '🪚', label: 'Marcenaria' },
-  { icon: '🎨', label: 'Pintura' },
-  { icon: '🧹', label: 'Limpeza' },
-  { icon: '🌿', label: 'Jardinagem' },
+  'Elétrica',
+  'Hidráulica',
+  'Marcenaria',
+  'Pintura',
+  'Limpeza',
+  'Jardinagem',
 ];
 
 export function HomeScreen() {
@@ -20,7 +20,7 @@ export function HomeScreen() {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <LinearGradient colors={[colors.secondary, '#0A6870']} style={styles.heroBand}>
         <Text style={styles.greeting}>
-          Olá, {user?.nome?.split(' ')[0] ?? 'visitante'} 👋
+          Olá, {user?.nome?.split(' ')[0] ?? 'visitante'}
         </Text>
         <Text style={styles.heroSubtitle}>
           {isProfissional
@@ -33,15 +33,13 @@ export function HomeScreen() {
         <Text style={styles.sectionTitle}>Categorias</Text>
         <View style={styles.categoriesGrid}>
           {CATEGORIES.map((cat) => (
-            <View key={cat.label} style={styles.categoryCard}>
-              <Text style={styles.categoryIcon}>{cat.icon}</Text>
-              <Text style={styles.categoryLabel}>{cat.label}</Text>
+            <View key={cat} style={styles.categoryCard}>
+              <Text style={styles.categoryLabel}>{cat}</Text>
             </View>
           ))}
         </View>
 
         <View style={styles.placeholderCard}>
-          <Text style={styles.placeholderIcon}>🚧</Text>
           <Text style={styles.placeholderTitle}>Em desenvolvimento</Text>
           <Text style={styles.placeholderDesc}>
             {isProfissional
@@ -95,19 +93,12 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   categoryCard: {
-    width: '30%',
-    aspectRatio: 1,
     backgroundColor: colors.surface,
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    flexGrow: 1,
-  },
-  categoryIcon: {
-    fontSize: 26,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
   },
   categoryLabel: {
     fontSize: 12,
@@ -123,9 +114,6 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     alignItems: 'center',
     gap: spacing.sm,
-  },
-  placeholderIcon: {
-    fontSize: 40,
   },
   placeholderTitle: {
     fontSize: 17,

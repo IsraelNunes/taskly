@@ -16,18 +16,16 @@ import { colors, spacing } from '../theme';
 
 type RoleOption = 'CLIENTE' | 'PROFISSIONAL';
 
-const ROLE_OPTIONS: { value: RoleOption; label: string; description: string; icon: string }[] = [
+const ROLE_OPTIONS: { value: RoleOption; label: string; description: string }[] = [
   {
     value: 'CLIENTE',
     label: 'Sou Cliente',
     description: 'Quero contratar serviços',
-    icon: '🙋',
   },
   {
     value: 'PROFISSIONAL',
     label: 'Sou Profissional',
     description: 'Quero oferecer serviços',
-    icon: '🔧',
   },
 ];
 
@@ -71,7 +69,6 @@ export function RegisterScreen({ navigation }: any) {
                   style={[styles.roleCard, active && styles.roleCardActive]}
                   onPress={() => setPerfil(option.value)}
                 >
-                  <Text style={styles.roleIcon}>{option.icon}</Text>
                   <Text style={[styles.roleLabel, active && styles.roleLabelActive]}>
                     {option.label}
                   </Text>
@@ -164,9 +161,6 @@ const styles = StyleSheet.create({
   roleCardActive: {
     borderColor: colors.primary,
     backgroundColor: 'rgba(255,107,61,0.15)',
-  },
-  roleIcon: {
-    fontSize: 28,
   },
   roleLabel: {
     fontWeight: '700',
