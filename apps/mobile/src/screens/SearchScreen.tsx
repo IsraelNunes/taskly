@@ -51,7 +51,7 @@ export function SearchScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.searchBar}>
+      <View style={styles.header}>
         <TextInput
           style={styles.searchInput}
           value={search}
@@ -60,32 +60,32 @@ export function SearchScreen({ navigation }: any) {
           placeholderTextColor={colors.textMuted}
           autoCorrect={false}
         />
-      </View>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipsRow}
-      >
-        <Pressable
-          style={[styles.chip, !selectedCategory && styles.chipActive]}
-          onPress={() => setSelectedCategory(null)}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsRow}
+          style={styles.chipsScroll}
         >
-          <Text style={[styles.chipText, !selectedCategory && styles.chipTextActive]}>Todos</Text>
-        </Pressable>
-        {categories.map((cat) => {
-          const active = selectedCategory === cat.id;
-          return (
-            <Pressable
-              key={cat.id}
-              style={[styles.chip, active && styles.chipActive]}
-              onPress={() => setSelectedCategory(active ? null : cat.id)}
-            >
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>{cat.nome}</Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+          <Pressable
+            style={[styles.chip, !selectedCategory && styles.chipActive]}
+            onPress={() => setSelectedCategory(null)}
+          >
+            <Text style={[styles.chipText, !selectedCategory && styles.chipTextActive]}>Todos</Text>
+          </Pressable>
+          {categories.map((cat) => {
+            const active = selectedCategory === cat.id;
+            return (
+              <Pressable
+                key={cat.id}
+                style={[styles.chip, active && styles.chipActive]}
+                onPress={() => setSelectedCategory(active ? null : cat.id)}
+              >
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>{cat.nome}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
 
       <FlatList
         data={filtered}
@@ -127,10 +127,10 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   center:    { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  searchBar: {
-    paddingHorizontal: spacing.md,
+  header: {
     paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
+    gap: spacing.sm,
+    backgroundColor: colors.background,
   },
   searchInput: {
     height: 44,
@@ -141,8 +141,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     fontSize: 15,
     color: colors.text,
+    marginHorizontal: spacing.md,
   },
-
+  chipsScroll: {
+    flexGrow: 0,
+  },
   chipsRow: {
     flexDirection: 'row',
     alignItems: 'center',
