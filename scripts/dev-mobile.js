@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Inicia a API em background e o Expo com acesso direto ao terminal.
+ * Abre a API e o Expo em abas separadas do terminal.
  *
  * Uso:
  *   node scripts/dev-mobile.js web       → navegador (localhost)
@@ -11,9 +11,9 @@
  */
 
 const { execSync, spawn } = require('child_process');
-const http  = require('http');
-const fs    = require('fs');
-const path  = require('path');
+const http = require('http');
+const fs   = require('fs');
+const path = require('path');
 
 const MODE        = process.argv[2];
 const VALID_MODES = ['web', 'emulator', 'local', 'tunnel'];
@@ -24,15 +24,67 @@ if (!VALID_MODES.includes(MODE)) {
   process.exit(1);
 }
 
-const API_PORT  = 3333;
+const API_PORT   = 3333;
 const API_PREFIX = 'api';
-const ROOT_DIR  = path.join(__dirname, '..');
+const ROOT_DIR   = path.join(__dirname, '..');
 const MOBILE_DIR = path.join(ROOT_DIR, 'apps/mobile');
 
-const cyan   = '\x1b[36m';
 const yellow = '\x1b[33m';
+const cyan   = '\x1b[36m';
 const reset  = '\x1b[0m';
 
+// ─── Detecta terminal disponível ─────────────────────────────────────────────
+function detectTerminal() {
+  const candidates = [
+    { bin: 'gnome-terminal', type: 'gnome' },
+    { bin: 'konsole',        type: 'konsole' },
+    { bin: 'xfce4-terminal', type: 'xfce4' },
+    { bin: 'xterm',          type: 'xterm' },
+  ];
+  for (const { bin, type } of candidates) {
+    try { execSync(`which ${bin}`, { stdio: 'ignore' }); return type; } catch { /* próximo */ }
+  }
+  return null;
+}
+
+// Abre um comando em uma nova aba/janela do terminal detectado
+function openTab(title, command) {
+  const terminal = detectTerminal();
+  const shell    = `bash -c 'cd "${ROOT_DIR}" && ${command}; echo; echo "[encerrado — pressione Enter]"; read'`;
+
+  switch (terminal) {
+    case 'gnome':
+      spawn('gnome-terminal', ['--tab', `--title=${title}`, '--', 'bash', '-c',
+        `cd "${ROOT_DIR}" && ${command}; echo; echo "[encerrado — pressione Enter]"; read`],
+        { detached: true, stdio: 'ignore' }).unref();
+      break;
+
+    case 'konsole':
+      spawn('konsole', ['--new-tab', '-p', `tabtitle=${title}`, '-e', 'bash', '-c',
+        `cd "${ROOT_DIR}" && ${command}; read`],
+        { detached: true, stdio: 'ignore' }).unref();
+      break;
+
+    case 'xfce4':
+      spawn('xfce4-terminal', ['--tab', `--title=${title}`, '-x', 'bash', '-c',
+        `cd "${ROOT_DIR}" && ${command}; read`],
+        { detached: true, stdio: 'ignore' }).unref();
+      break;
+
+    case 'xterm':
+      spawn('xterm', ['-title', title, '-e', shell],
+        { detached: true, stdio: 'ignore' }).unref();
+      break;
+
+    default:
+      // Sem terminal gráfico: roda em background no terminal atual
+      console.warn(`${yellow}[Taskly] Terminal não detectado — rodando em background.${reset}`);
+      spawn('bash', ['-c', command], { cwd: ROOT_DIR, stdio: 'inherit', detached: false });
+      break;
+  }
+}
+
+// ─── Detectar IP local ────────────────────────────────────────────────────────
 function getLocalIP() {
   const strategies = [
     () => execSync("ip route get 1 2>/dev/null | awk '{print $7; exit}'").toString().trim(),
@@ -43,27 +95,26 @@ function getLocalIP() {
     try {
       const ip = fn();
       if (ip && /^\d+\.\d+\.\d+\.\d+$/.test(ip)) return ip;
-    } catch { /* tenta próxima */ }
+    } catch { /* próximo */ }
   }
   const fallback = process.env.TASKLY_LOCAL_IP || '192.168.1.100';
   console.warn(`\n${yellow}[Taskly] IP não detectado. Usando ${fallback}.${reset}`);
   return fallback;
 }
 
-// Consulta a API local do ngrok para obter a URL pública do túnel
+// ─── URL do ngrok (modo tunnel) ───────────────────────────────────────────────
 function getNgrokUrl(retries = 20, interval = 500) {
   return new Promise((resolve, reject) => {
     let attempts = 0;
     const try_ = () => {
       http.get('http://127.0.0.1:4040/api/tunnels', (res) => {
         let data = '';
-        res.on('data', (chunk) => { data += chunk; });
+        res.on('data', (c) => { data += c; });
         res.on('end', () => {
           try {
-            const tunnels = JSON.parse(data).tunnels;
-            const https   = tunnels.find((t) => t.proto === 'https');
+            const https = JSON.parse(data).tunnels.find((t) => t.proto === 'https');
             if (https) return resolve(https.public_url);
-          } catch { /* continua tentando */ }
+          } catch { /* continua */ }
           retry();
         });
       }).on('error', retry);
@@ -76,26 +127,20 @@ function getNgrokUrl(retries = 20, interval = 500) {
   });
 }
 
+// ─── Main ─────────────────────────────────────────────────────────────────────
 async function main() {
-  // ─── Determinar URL da API ──────────────────────────────────────────────────
   let apiUrl;
   let ngrokProc = null;
 
   if (MODE === 'tunnel') {
-    console.log(`\n${yellow}[Taskly] Modo tunnel: iniciando ngrok para a API...${reset}\n`);
-
-    ngrokProc = spawn('ngrok', ['http', String(API_PORT)], {
-      stdio: ['ignore', 'ignore', 'ignore'],
-      detached: false,
-    });
-
+    console.log(`\n${yellow}[Taskly] Iniciando ngrok para a API...${reset}\n`);
+    ngrokProc = spawn('ngrok', ['http', String(API_PORT)], { stdio: 'ignore', detached: false });
     try {
       const publicUrl = await getNgrokUrl();
       apiUrl = `${publicUrl}/${API_PREFIX}`;
       console.log(`${cyan}[Taskly] Túnel da API: ${publicUrl}${reset}\n`);
     } catch (err) {
-      console.error(`\n[Taskly] Erro ao obter URL do ngrok: ${err.message}`);
-      console.error('[Taskly] Certifique-se de que o ngrok está autenticado (ngrok config add-authtoken <token>)\n');
+      console.error(`[Taskly] Erro ngrok: ${err.message}`);
       ngrokProc.kill();
       process.exit(1);
     }
@@ -108,60 +153,37 @@ async function main() {
     apiUrl = urls[MODE];
   }
 
+  // Grava .env.local para o Expo usar a URL correta
+  fs.writeFileSync(
+    path.join(MOBILE_DIR, '.env.local'),
+    `EXPO_PUBLIC_API_URL=${apiUrl}\n`,
+  );
+
   const expoFlags = {
-    web:      ['--web'],
-    emulator: ['--android'],
-    local:    [],
-    tunnel:   ['--tunnel'],
+    web:      '--web',
+    emulator: '--android',
+    local:    '',
+    tunnel:   '--tunnel',
   };
+  const expoCmd = `npx expo start${expoFlags[MODE] ? ' ' + expoFlags[MODE] : ''}`;
 
-  const expoArgs = ['start', ...expoFlags[MODE]];
-
-  // ─── Escreve .env.local para garantir que o Expo use a URL correta ───────────
-  // .env.local tem precedência sobre .env no Expo SDK 49+
-  const envLocalPath = path.join(MOBILE_DIR, '.env.local');
-  fs.writeFileSync(envLocalPath, `EXPO_PUBLIC_API_URL=${apiUrl}\n`);
-
-  console.log(`┌─────────────────────────────────────────────────┐`);
+  console.log(`\n┌─────────────────────────────────────────────────┐`);
   console.log(`│  Taskly — modo: ${MODE.padEnd(32)}│`);
   console.log(`│  API:  ${apiUrl.padEnd(41)}│`);
   console.log(`└─────────────────────────────────────────────────┘\n`);
+  console.log(`${cyan}Abrindo abas do terminal...${reset}\n`);
 
-  // ─── API em background ───────────────────────────────────────────────────────
-  const api = spawn('npm', ['run', 'dev:api'], {
-    cwd: ROOT_DIR,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
+  // Aba 1 — API
+  openTab('Taskly API', 'npm run dev:api');
 
-  function printApiLine(chunk) {
-    chunk.toString().split('\n').forEach((line) => {
-      if (line.trim()) process.stdout.write(`${cyan}[API]${reset} ${line}\n`);
-    });
-  }
+  // Pequena pausa para a primeira aba abrir antes da segunda
+  await new Promise((r) => setTimeout(r, 300));
 
-  api.stdout?.on('data', printApiLine);
-  api.stderr?.on('data', printApiLine);
+  // Aba 2 — Expo (com a URL correta no ambiente)
+  openTab('Taskly Mobile', `EXPO_PUBLIC_API_URL="${apiUrl}" ${expoCmd}`);
 
-  // ─── Expo com terminal completo (QR code) ────────────────────────────────────
-  const expo = spawn('npx', ['expo', ...expoArgs], {
-    cwd: MOBILE_DIR,
-    stdio: 'inherit',
-    env: { ...process.env, EXPO_PUBLIC_API_URL: apiUrl },
-  });
-
-  // ─── Encerramento limpo ───────────────────────────────────────────────────────
-  function shutdown() {
-    api.kill('SIGTERM');
-    if (ngrokProc) ngrokProc.kill('SIGTERM');
-    process.exit(0);
-  }
-
-  expo.on('exit', shutdown);
-  process.on('SIGINT',  shutdown);
-  process.on('SIGTERM', shutdown);
+  // Encerra o processo atual (as abas são independentes)
+  setTimeout(() => process.exit(0), 500);
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+main().catch((err) => { console.error(err); process.exit(1); });
