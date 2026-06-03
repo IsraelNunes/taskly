@@ -12,6 +12,7 @@
 
 const { execSync, spawn } = require('child_process');
 const http  = require('http');
+const fs    = require('fs');
 const path  = require('path');
 
 const MODE        = process.argv[2];
@@ -115,6 +116,11 @@ async function main() {
   };
 
   const expoArgs = ['start', ...expoFlags[MODE]];
+
+  // ─── Escreve .env.local para garantir que o Expo use a URL correta ───────────
+  // .env.local tem precedência sobre .env no Expo SDK 49+
+  const envLocalPath = path.join(MOBILE_DIR, '.env.local');
+  fs.writeFileSync(envLocalPath, `EXPO_PUBLIC_API_URL=${apiUrl}\n`);
 
   console.log(`┌─────────────────────────────────────────────────┐`);
   console.log(`│  Taskly — modo: ${MODE.padEnd(32)}│`);
