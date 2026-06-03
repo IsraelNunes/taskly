@@ -65,6 +65,7 @@ function ClientProfileView({ navigation }: any) {
           <InfoRow label="Cidade" value={user?.cidade ?? '—'} />
         </View>
 
+        <AppButton title="Minhas contratações" variant="ghost" onPress={() => navigation.navigate('MyRequests')} />
         <AppButton title="Editar perfil" onPress={() => navigation.navigate('EditClientProfile')} />
         <AppButton title="Sair da conta" variant="danger" onPress={() => void signOut()} />
       </View>
@@ -159,6 +160,8 @@ function ProfessionalProfileView({ navigation }: any) {
           </View>
         ) : null}
 
+        <AppButton title="Solicitações recebidas" variant="ghost" onPress={() => navigation.navigate('IncomingRequests')} />
+        <AppButton title="Disponibilidade" variant="ghost" onPress={() => navigation.navigate('EditAvailability')} />
         <AppButton
           title="Editar perfil"
           onPress={() => navigation.navigate('EditProfessionalProfile')}

@@ -1,5 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AppButton } from '../components/AppButton';
 import { useAuth } from '../hooks/useAuth';
 import { colors, spacing } from '../theme';
 
@@ -12,7 +13,7 @@ const CATEGORIES = [
   'Jardinagem',
 ];
 
-export function HomeScreen() {
+export function HomeScreen({ navigation }: any) {
   const { user } = useAuth();
   const isProfissional = user?.perfil === 'PROFISSIONAL';
 
@@ -39,14 +40,18 @@ export function HomeScreen() {
           ))}
         </View>
 
-        <View style={styles.placeholderCard}>
-          <Text style={styles.placeholderTitle}>Em desenvolvimento</Text>
-          <Text style={styles.placeholderDesc}>
-            {isProfissional
-              ? 'As solicitações de serviço estarão disponíveis em breve.'
-              : 'O feed de profissionais estará disponível na próxima fase.'}
-          </Text>
-        </View>
+        {isProfissional ? (
+          <AppButton
+            title="Ver solicitações recebidas"
+            variant="secondary"
+            onPress={() => navigation.navigate('IncomingRequests')}
+          />
+        ) : (
+          <AppButton
+            title="Buscar profissionais"
+            onPress={() => navigation.navigate('Search')}
+          />
+        )}
       </View>
     </ScrollView>
   );

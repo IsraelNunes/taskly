@@ -19,13 +19,21 @@ import { AdminCitiesScreen } from '../screens/admin/AdminCitiesScreen';
 import { AdminProfilesScreen } from '../screens/admin/AdminProfilesScreen';
 import { AdminUfsScreen } from '../screens/admin/AdminUfsScreen';
 import { AdminUsersScreen } from '../screens/admin/AdminUsersScreen';
+import { EditAvailabilityScreen } from '../screens/EditAvailabilityScreen';
 import { EditClientProfileScreen } from '../screens/EditClientProfileScreen';
 import { EditProfessionalProfileScreen } from '../screens/EditProfessionalProfileScreen';
 import { HomeScreen } from '../screens/HomeScreen';
+import { IncomingRequestsScreen } from '../screens/IncomingRequestsScreen';
 import { LoginScreen } from '../screens/LoginScreen';
+import { MyRequestsScreen } from '../screens/MyRequestsScreen';
+import { NewRequestScreen } from '../screens/NewRequestScreen';
+import { PaymentScreen } from '../screens/PaymentScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { ProfessionalPublicProfileScreen } from '../screens/ProfessionalPublicProfileScreen';
 import { PublicAccountScreen } from '../screens/PublicAccountScreen';
 import { RegisterScreen } from '../screens/RegisterScreen';
+import { RequestDetailScreen } from '../screens/RequestDetailScreen';
+import { SearchScreen } from '../screens/SearchScreen';
 import { SplashScreen } from '../screens/SplashScreen';
 import { colors } from '../theme/colors';
 
@@ -170,6 +178,14 @@ function AuthStackNavigator() {
       <AppStack.Screen name="AdminProfiles" component={AdminProfilesScreen} options={{ title: 'Perfis' }} />
       <AppStack.Screen name="AdminUfs" component={AdminUfsScreen} options={{ title: 'UFs' }} />
       <AppStack.Screen name="AdminCities" component={AdminCitiesScreen} options={{ title: 'Cidades' }} />
+      <AppStack.Screen name="Search" component={SearchScreen} options={{ title: 'Buscar Profissionais' }} />
+      <AppStack.Screen name="ProfessionalPublicProfile" component={ProfessionalPublicProfileScreen} options={{ title: 'Profissional' }} />
+      <AppStack.Screen name="NewRequest" component={NewRequestScreen} options={{ title: 'Nova Contratação' }} />
+      <AppStack.Screen name="MyRequests" component={MyRequestsScreen} options={{ title: 'Minhas Contratações' }} />
+      <AppStack.Screen name="IncomingRequests" component={IncomingRequestsScreen} options={{ title: 'Solicitações Recebidas' }} />
+      <AppStack.Screen name="RequestDetail" component={RequestDetailScreen} options={{ title: 'Contratação' }} />
+      <AppStack.Screen name="Payment" component={PaymentScreen} options={{ title: 'Pagamento' }} />
+      <AppStack.Screen name="EditAvailability" component={EditAvailabilityScreen} options={{ title: 'Minha Disponibilidade' }} />
     </AppStack.Navigator>
   );
 }

@@ -165,3 +165,77 @@ export const portfolioImagesRelations = relations(portfolioImages, ({ one }) => 
     references: [professionalProfiles.id],
   }),
 }));
+
+// ─── Entrega 3 ───────────────────────────────────────────────────────────────
+
+export const professionalAvailability = pgTable('professional_availability', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  professionalProfileId: uuid('professional_profile_id')
+    .notNull()
+    .references(() => professionalProfiles.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+  diaSemana: integer('dia_semana').notNull(), // 0=Dom, 1=Seg ... 6=Sab
+  horaInicio: varchar('hora_inicio', { length: 5 }).notNull(), // "08:00"
+  horaFim: varchar('hora_fim', { length: 5 }).notNull(),       // "18:00"
+  ativo: boolean('ativo').default(true).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const serviceRequests = pgTable('service_requests', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  clientId: uuid('client_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
+  professionalId: uuid('professional_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
+  categoryId: uuid('category_id')
+    .references(() => serviceCategories.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+  descricao: text('descricao').notNull(),
+  endereco: text('endereco'),
+  dataAgendada: timestamp('data_agendada', { withTimezone: true }),
+  valorEstimado: numeric('valor_estimado', { precision: 10, scale: 2 }),
+  status: varchar('status', { length: 20 }).default('PENDENTE').notNull(),
+  motivoCancelamento: text('motivo_cancelamento'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const payments = pgTable('payments', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  serviceRequestId: uuid('service_request_id')
+    .notNull()
+    .unique()
+    .references(() => serviceRequests.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+  valor: numeric('valor', { precision: 10, scale: 2 }).notNull(),
+  metodo: varchar('metodo', { length: 20 }).notNull(), // PIX | CARTAO | DINHEIRO
+  status: varchar('status', { length: 20 }).default('PENDENTE').notNull(), // PENDENTE | PAGO
+  pagoEm: timestamp('pago_em', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const professionalAvailabilityRelations = relations(professionalAvailability, ({ one }) => ({
+  professional: one(professionalProfiles, {
+    fields: [professionalAvailability.professionalProfileId],
+    references: [professionalProfiles.id],
+  }),
+}));
+
+export const serviceRequestsRelations = relations(serviceRequests, ({ one }) => ({
+  client: one(users, { fields: [serviceRequests.clientId], references: [users.id] }),
+  professional: one(users, { fields: [serviceRequests.professionalId], references: [users.id] }),
+  category: one(serviceCategories, {
+    fields: [serviceRequests.categoryId],
+    references: [serviceCategories.id],
+  }),
+  payment: one(payments, {
+    fields: [serviceRequests.id],
+    references: [payments.serviceRequestId],
+  }),
+}));
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  serviceRequest: one(serviceRequests, {
+    fields: [payments.serviceRequestId],
+    references: [serviceRequests.id],
+  }),
+}));

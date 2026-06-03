@@ -34,4 +34,12 @@ export type AppStackParamList = {
   AdminProfiles: undefined;
   AdminUfs: undefined;
   AdminCities: undefined;
+  Search: undefined;
+  ProfessionalPublicProfile: { userId: string };
+  NewRequest: { professionalId: string; professionalNome: string };
+  MyRequests: undefined;
+  IncomingRequests: undefined;
+  RequestDetail: { requestId: string };
+  Payment: { requestId: string; valor: number };
+  EditAvailability: undefined;
 };

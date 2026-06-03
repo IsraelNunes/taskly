@@ -116,7 +116,7 @@ O banco possui **10 tabelas** com relacionamentos via foreign keys:
 ### 6.3 Perfil do Profissional
 
 - Visualização de bio, avaliação média com estrelas, cidade e especialidades
-- Edição de dados pessoais e bio
+- Edição de dados pessoais e biohttps://github.com/IsraelNunes/taskly
 - Seleção múltipla de categorias de especialidade
 - Gerenciamento de portfólio de imagens (adicionar e remover)
 
