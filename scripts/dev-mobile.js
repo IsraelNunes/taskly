@@ -1,20 +1,20 @@
 #!/usr/bin/env node
 
 /**
- * Inicia a API em background e o Expo com acesso direto ao terminal
- * (necessário para o QR code renderizar corretamente).
+ * Inicia a API em background e o Expo com acesso direto ao terminal.
  *
  * Uso:
  *   node scripts/dev-mobile.js web       → navegador (localhost)
  *   node scripts/dev-mobile.js emulator  → emulador Android (10.0.2.2)
  *   node scripts/dev-mobile.js local     → dispositivo físico (IP detectado)
- *   node scripts/dev-mobile.js tunnel    → qualquer lugar via túnel Expo
+ *   node scripts/dev-mobile.js tunnel    → API via ngrok + Expo via túnel
  */
 
 const { execSync, spawn } = require('child_process');
-const path = require('path');
+const http  = require('http');
+const path  = require('path');
 
-const MODE = process.argv[2];
+const MODE        = process.argv[2];
 const VALID_MODES = ['web', 'emulator', 'local', 'tunnel'];
 
 if (!VALID_MODES.includes(MODE)) {
@@ -23,10 +23,14 @@ if (!VALID_MODES.includes(MODE)) {
   process.exit(1);
 }
 
-const API_PORT = 3333;
+const API_PORT  = 3333;
 const API_PREFIX = 'api';
-const ROOT_DIR   = path.join(__dirname, '..');
+const ROOT_DIR  = path.join(__dirname, '..');
 const MOBILE_DIR = path.join(ROOT_DIR, 'apps/mobile');
+
+const cyan   = '\x1b[36m';
+const yellow = '\x1b[33m';
+const reset  = '\x1b[0m';
 
 function getLocalIP() {
   const strategies = [
@@ -41,64 +45,117 @@ function getLocalIP() {
     } catch { /* tenta próxima */ }
   }
   const fallback = process.env.TASKLY_LOCAL_IP || '192.168.1.100';
-  console.warn(`\n[Taskly] IP não detectado. Usando ${fallback}.`);
-  console.warn('[Taskly] Defina TASKLY_LOCAL_IP=<seu-ip> para sobrescrever.\n');
+  console.warn(`\n${yellow}[Taskly] IP não detectado. Usando ${fallback}.${reset}`);
   return fallback;
 }
 
-const API_URLS = {
-  web:      `http://localhost:${API_PORT}/${API_PREFIX}`,
-  emulator: `http://10.0.2.2:${API_PORT}/${API_PREFIX}`,
-  local:    `http://${process.env.TASKLY_LOCAL_IP || getLocalIP()}:${API_PORT}/${API_PREFIX}`,
-  tunnel:   `http://${process.env.TASKLY_LOCAL_IP || getLocalIP()}:${API_PORT}/${API_PREFIX}`,
-};
-
-const EXPO_FLAGS = {
-  web:      ['--web'],
-  emulator: ['--android'],
-  local:    [],
-  tunnel:   ['--tunnel'],
-};
-
-const apiUrl   = API_URLS[MODE];
-const expoArgs = ['start', ...EXPO_FLAGS[MODE]];
-
-console.log(`\n┌─────────────────────────────────────────┐`);
-console.log(`│  Taskly — modo: ${MODE.padEnd(24)}│`);
-console.log(`│  API URL: ${apiUrl.padEnd(30)}│`);
-console.log(`└─────────────────────────────────────────┘\n`);
-
-// ─── API em background, output prefixado ─────────────────────────────────────
-const api = spawn('npm', ['run', 'dev:api'], {
-  cwd: ROOT_DIR,
-  stdio: ['ignore', 'pipe', 'pipe'],
-});
-
-const cyan  = '\x1b[36m';
-const reset = '\x1b[0m';
-
-function printApiLine(chunk) {
-  chunk.toString().split('\n').forEach((line) => {
-    if (line.trim()) process.stdout.write(`${cyan}[API]${reset} ${line}\n`);
+// Consulta a API local do ngrok para obter a URL pública do túnel
+function getNgrokUrl(retries = 20, interval = 500) {
+  return new Promise((resolve, reject) => {
+    let attempts = 0;
+    const try_ = () => {
+      http.get('http://127.0.0.1:4040/api/tunnels', (res) => {
+        let data = '';
+        res.on('data', (chunk) => { data += chunk; });
+        res.on('end', () => {
+          try {
+            const tunnels = JSON.parse(data).tunnels;
+            const https   = tunnels.find((t) => t.proto === 'https');
+            if (https) return resolve(https.public_url);
+          } catch { /* continua tentando */ }
+          retry();
+        });
+      }).on('error', retry);
+    };
+    const retry = () => {
+      if (++attempts >= retries) return reject(new Error('ngrok não respondeu.'));
+      setTimeout(try_, interval);
+    };
+    try_();
   });
 }
 
-api.stdout?.on('data', printApiLine);
-api.stderr?.on('data', printApiLine);
+async function main() {
+  // ─── Determinar URL da API ──────────────────────────────────────────────────
+  let apiUrl;
+  let ngrokProc = null;
 
-// ─── Expo com terminal completo (necessário para QR code) ────────────────────
-const expo = spawn('npx', ['expo', ...expoArgs], {
-  cwd: MOBILE_DIR,
-  stdio: 'inherit',         // herda stdin/stdout/stderr → QR code funciona
-  env: { ...process.env, EXPO_PUBLIC_API_URL: apiUrl },
-});
+  if (MODE === 'tunnel') {
+    console.log(`\n${yellow}[Taskly] Modo tunnel: iniciando ngrok para a API...${reset}\n`);
 
-// ─── Encerrar API quando Expo fechar ─────────────────────────────────────────
-function shutdown() {
-  api.kill('SIGTERM');
-  process.exit(0);
+    ngrokProc = spawn('ngrok', ['http', String(API_PORT)], {
+      stdio: ['ignore', 'ignore', 'ignore'],
+      detached: false,
+    });
+
+    try {
+      const publicUrl = await getNgrokUrl();
+      apiUrl = `${publicUrl}/${API_PREFIX}`;
+      console.log(`${cyan}[Taskly] Túnel da API: ${publicUrl}${reset}\n`);
+    } catch (err) {
+      console.error(`\n[Taskly] Erro ao obter URL do ngrok: ${err.message}`);
+      console.error('[Taskly] Certifique-se de que o ngrok está autenticado (ngrok config add-authtoken <token>)\n');
+      ngrokProc.kill();
+      process.exit(1);
+    }
+  } else {
+    const urls = {
+      web:      `http://localhost:${API_PORT}/${API_PREFIX}`,
+      emulator: `http://10.0.2.2:${API_PORT}/${API_PREFIX}`,
+      local:    `http://${process.env.TASKLY_LOCAL_IP || getLocalIP()}:${API_PORT}/${API_PREFIX}`,
+    };
+    apiUrl = urls[MODE];
+  }
+
+  const expoFlags = {
+    web:      ['--web'],
+    emulator: ['--android'],
+    local:    [],
+    tunnel:   ['--tunnel'],
+  };
+
+  const expoArgs = ['start', ...expoFlags[MODE]];
+
+  console.log(`┌─────────────────────────────────────────────────┐`);
+  console.log(`│  Taskly — modo: ${MODE.padEnd(32)}│`);
+  console.log(`│  API:  ${apiUrl.padEnd(41)}│`);
+  console.log(`└─────────────────────────────────────────────────┘\n`);
+
+  // ─── API em background ───────────────────────────────────────────────────────
+  const api = spawn('npm', ['run', 'dev:api'], {
+    cwd: ROOT_DIR,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  function printApiLine(chunk) {
+    chunk.toString().split('\n').forEach((line) => {
+      if (line.trim()) process.stdout.write(`${cyan}[API]${reset} ${line}\n`);
+    });
+  }
+
+  api.stdout?.on('data', printApiLine);
+  api.stderr?.on('data', printApiLine);
+
+  // ─── Expo com terminal completo (QR code) ────────────────────────────────────
+  const expo = spawn('npx', ['expo', ...expoArgs], {
+    cwd: MOBILE_DIR,
+    stdio: 'inherit',
+    env: { ...process.env, EXPO_PUBLIC_API_URL: apiUrl },
+  });
+
+  // ─── Encerramento limpo ───────────────────────────────────────────────────────
+  function shutdown() {
+    api.kill('SIGTERM');
+    if (ngrokProc) ngrokProc.kill('SIGTERM');
+    process.exit(0);
+  }
+
+  expo.on('exit', shutdown);
+  process.on('SIGINT',  shutdown);
+  process.on('SIGTERM', shutdown);
 }
 
-expo.on('exit', shutdown);
-process.on('SIGINT',  shutdown);
-process.on('SIGTERM', shutdown);
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
