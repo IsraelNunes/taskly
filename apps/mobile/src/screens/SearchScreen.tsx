@@ -7,9 +7,9 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
-import { AppInput } from '../components/AppInput';
 import { EmptyState } from '../components/EmptyState';
 import { categoryService } from '../services/category.service';
 import { professionalProfileService } from '../services/professional-profile.service';
@@ -28,17 +28,18 @@ export function SearchScreen({ navigation }: any) {
       void Promise.all([
         professionalProfileService.list(),
         categoryService.list(),
-      ]).then(([profs, cats]) => {
-        setProfessionals(profs);
-        setCategories(cats);
-      }).finally(() => setLoading(false));
+      ])
+        .then(([profs, cats]) => {
+          setProfessionals(profs);
+          setCategories(cats);
+        })
+        .finally(() => setLoading(false));
     }, []),
   );
 
-  const filtered = professionals.filter((p) => {
-    const matchName = !search || p.nome.toLowerCase().includes(search.toLowerCase());
-    return matchName;
-  });
+  const filtered = professionals.filter((p) =>
+    !search || p.nome.toLowerCase().includes(search.toLowerCase()),
+  );
 
   if (loading) {
     return (
@@ -51,11 +52,12 @@ export function SearchScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
       <View style={styles.searchBar}>
-        <AppInput
-          label=""
+        <TextInput
+          style={styles.searchInput}
           value={search}
           onChangeText={setSearch}
           placeholder="Buscar por nome..."
+          placeholderTextColor={colors.textMuted}
           autoCorrect={false}
         />
       </View>
@@ -63,7 +65,7 @@ export function SearchScreen({ navigation }: any) {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chips}
+        contentContainerStyle={styles.chipsRow}
       >
         <Pressable
           style={[styles.chip, !selectedCategory && styles.chipActive]}
@@ -71,22 +73,18 @@ export function SearchScreen({ navigation }: any) {
         >
           <Text style={[styles.chipText, !selectedCategory && styles.chipTextActive]}>Todos</Text>
         </Pressable>
-        {categories.map((cat) => (
-          <Pressable
-            key={cat.id}
-            style={[styles.chip, selectedCategory === cat.id && styles.chipActive]}
-            onPress={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
-          >
-            <Text
-              style={[
-                styles.chipText,
-                selectedCategory === cat.id && styles.chipTextActive,
-              ]}
+        {categories.map((cat) => {
+          const active = selectedCategory === cat.id;
+          return (
+            <Pressable
+              key={cat.id}
+              style={[styles.chip, active && styles.chipActive]}
+              onPress={() => setSelectedCategory(active ? null : cat.id)}
             >
-              {cat.nome}
-            </Text>
-          </Pressable>
-        ))}
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>{cat.nome}</Text>
+            </Pressable>
+          );
+        })}
       </ScrollView>
 
       <FlatList
@@ -96,9 +94,7 @@ export function SearchScreen({ navigation }: any) {
         renderItem={({ item }) => (
           <Pressable
             style={styles.card}
-            onPress={() =>
-              navigation.navigate('ProfessionalPublicProfile', { userId: item.userId })
-            }
+            onPress={() => navigation.navigate('ProfessionalPublicProfile', { userId: item.userId })}
           >
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>{item.nome[0].toUpperCase()}</Text>
@@ -129,24 +125,45 @@ export function SearchScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  searchBar: { padding: spacing.md, paddingBottom: 0 },
-  chips: {
+  center:    { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  searchBar: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  searchInput: {
+    height: 44,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    fontSize: 15,
+    color: colors.text,
+  },
+
+  chipsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
     gap: spacing.xs,
   },
   chip: {
+    height: 32,
     borderWidth: 1.5,
     borderColor: colors.border,
     borderRadius: 999,
-    paddingVertical: 5,
     paddingHorizontal: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: colors.surface,
   },
-  chipActive: { borderColor: colors.secondary, backgroundColor: colors.secondaryLight },
-  chipText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
+  chipActive:     { borderColor: colors.secondary, backgroundColor: colors.secondaryLight },
+  chipText:       { fontSize: 13, fontWeight: '600', color: colors.textMuted },
   chipTextActive: { color: colors.secondary },
+
   list: { padding: spacing.md, gap: spacing.sm },
   card: {
     flexDirection: 'row',
@@ -167,11 +184,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: { color: '#FFF', fontSize: 20, fontWeight: '800' },
-  cardInfo: { flex: 1, gap: 3 },
-  cardName: { fontSize: 15, fontWeight: '700', color: colors.text },
-  cardCity: { fontSize: 12, color: colors.textMuted },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  cardInfo:   { flex: 1, gap: 3 },
+  cardName:   { fontSize: 15, fontWeight: '700', color: colors.text },
+  cardCity:   { fontSize: 12, color: colors.textMuted },
+  ratingRow:  { flexDirection: 'row', alignItems: 'center', gap: 3 },
   ratingStar: { color: '#F5A623', fontSize: 13 },
   ratingText: { fontSize: 12, color: colors.textMuted, fontWeight: '600' },
-  arrow: { fontSize: 22, color: colors.textMuted },
+  arrow:      { fontSize: 22, color: colors.textMuted },
 });
