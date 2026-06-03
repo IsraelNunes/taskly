@@ -18,32 +18,34 @@ Taskly/
 │   ├── api/                        # Backend NestJS
 │   │   ├── drizzle/                # Migrations SQL
 │   │   └── src/
-│   │       ├── common/             # Guards, decorators, utils RBAC
+│   │       ├── common/             # Guards, decorators, RBAC
 │   │       ├── config/             # Validação de env (Zod)
 │   │       ├── db/                 # Schema Drizzle, migrations, seed
 │   │       └── modules/
-│   │           ├── auth/           # Login, cadastro, JWT
-│   │           ├── users/          # Usuários (próprio + admin)
-│   │           ├── profiles/       # CRUD de perfis (ADMIN)
+│   │           ├── auth/                   # Login, cadastro, JWT
+│   │           ├── users/                  # Usuários
+│   │           ├── profiles/               # CRUD de perfis (ADMIN)
 │   │           ├── client-profiles/        # Perfil do cliente
-│   │           ├── professional-profiles/  # Perfil + portfólio do profissional
+│   │           ├── professional-profiles/  # Perfil + portfólio
+│   │           ├── availability/           # Disponibilidade do profissional
 │   │           ├── service-categories/     # Categorias de serviço
-│   │           ├── ufs/            # Estados brasileiros
-│   │           └── cities/         # Cidades
+│   │           ├── service-requests/       # Contratações
+│   │           ├── payments/               # Pagamentos
+│   │           ├── ufs/                    # Estados brasileiros
+│   │           └── cities/                 # Cidades
 │   └── mobile/                     # App React Native
 │       └── src/
-│           ├── components/
-│           ├── hooks/              # useAuth (contexto de autenticação)
-│           ├── navigation/         # AppNavigator (tabs por role)
-│           ├── screens/
-│           │   ├── admin/          # Telas administrativas
-│           │   ├── ProfileScreen.tsx
-│           │   ├── EditClientProfileScreen.tsx
-│           │   ├── EditProfessionalProfileScreen.tsx
-│           │   └── RegisterScreen.tsx
+│           ├── components/         # AppButton, AppInput, etc.
+│           ├── hooks/              # useAuth
+│           ├── navigation/         # AppNavigator (rotas por role)
+│           ├── screens/            # Todas as telas
 │           ├── services/           # Chamadas HTTP à API
 │           ├── theme/              # Cores e espaçamentos
 │           └── types/              # Tipos TypeScript
+├── docker/
+│   └── init.sql                    # Schema completo (executado no primeiro up)
+├── scripts/
+│   └── dev-mobile.js               # Script de ambiente do mobile
 ├── docker-compose.yml
 └── package.json
 ```
@@ -56,13 +58,11 @@ Taskly/
 
 - [Node.js](https://nodejs.org) 20+
 - [Docker](https://www.docker.com) com Docker Compose
-- [Expo Go](https://expo.dev/client) no celular (ou emulador Android/iOS)
+- [Expo Go](https://expo.dev/client) no celular (ou emulador Android)
 
 ---
 
 ### 1. Instalar dependências
-
-Na raiz do projeto:
 
 ```bash
 npm install
@@ -72,11 +72,9 @@ npm install
 
 ### 2. Configurar variáveis de ambiente da API
 
-Crie o arquivo `apps/api/.env`:
+Crie `apps/api/.env`:
 
 ```bash
-# apps/api/.env
-
 DATABASE_URL=postgresql://taskly:taskly@localhost:55432/taskly
 JWT_SECRET=chave-secreta-minimo-8-chars
 JWT_EXPIRES_IN=7d
@@ -88,116 +86,58 @@ CORS_ORIGIN=*
 NODE_ENV=development
 ```
 
-> **Dica:** a senha e usuário do banco (`taskly:taskly`) e a porta (`55432`) já estão configurados no `docker-compose.yml`. Só copie o `DATABASE_URL` acima.
+---
+
+### 3. Configurar o banco e popular dados iniciais
+
+Na primeira vez, um único comando faz tudo (sobe o Docker, roda migrations e seed):
+
+```bash
+npm run db:setup
+```
+
+> O banco já é criado com todas as tabelas automaticamente via `docker/init.sql` na primeira vez que o container sobe.
 
 ---
 
-### 3. Configurar variáveis de ambiente do mobile
+### 4. Iniciar o projeto
 
-Crie o arquivo `apps/mobile/.env`:
-
-```bash
-# apps/mobile/.env
-
-# Emulador Android
-EXPO_PUBLIC_API_URL=http://10.0.2.2:3333/api
-
-# Celular físico na mesma rede Wi-Fi — use o IP local da sua máquina
-# EXPO_PUBLIC_API_URL=http://192.168.x.x:3333/api
-
-# iOS Simulator ou web
-# EXPO_PUBLIC_API_URL=http://localhost:3333/api
-```
-
-Para descobrir seu IP local:
+Escolha o comando de acordo com onde vai testar:
 
 ```bash
-# Linux/Mac
-ip route get 1 | awk '{print $7; exit}'
-
-# Windows
-ipconfig
+npm run dev:web       # Navegador — mais rápido, sem precisar de celular
+npm run dev:emulator  # Emulador Android Studio
+npm run dev:local     # Celular físico na mesma rede Wi-Fi (IP detectado automaticamente)
+npm run dev:tunnel    # Celular em qualquer rede via túnel Expo
 ```
+
+Todos os comandos iniciam a **API + app mobile** juntos. O QR code aparece no terminal — escaneie com o **Expo Go**.
 
 ---
 
-### 4. Subir o banco de dados
+## Contas de demonstração
 
-```bash
-npm run db:up
-```
+Senha de todas: **`123456`**
 
-Aguarde o container ficar saudável (leva ~5 segundos):
-
-```bash
-npm run db:logs
-# procure por: "database system is ready to accept connections"
-```
+| Username | Perfil |
+|---|---|
+| `cliente` | CLIENTE |
+| `profissional` | PROFISSIONAL |
+| `admin` | ADMIN |
 
 ---
 
-### 5. Rodar as migrations
+## Banco de dados
 
-```bash
-npm run db:migrate
-```
-
-Isso aplica todas as migrations em `apps/api/drizzle/` e cria as tabelas no banco.
-
----
-
-### 6. Popular o banco com dados iniciais (seed)
-
-```bash
-npm run db:seed
-```
-
-Cria:
-- Perfis: `CLIENTE`, `PROFISSIONAL`, `ADMIN`
-- 10 categorias de serviço (Elétrica, Hidráulica, Marcenaria, etc.)
-- 3 usuários de demonstração (senha `123456`):
-  - `cliente` — perfil CLIENTE
-  - `profissional` — perfil PROFISSIONAL
-  - `admin` — perfil ADMIN
-
----
-
-### 7. Iniciar a API
-
-```bash
-npm run dev:api
-```
-
-A API sobe em `http://localhost:3333/api`.
-
----
-
-### 8. Iniciar o app mobile
-
-Em outro terminal:
-
-```bash
-npm run dev:mobile
-```
-
-Abre o Expo Dev Server. Escaneie o QR code com o **Expo Go** no celular, ou pressione:
-- `a` — abre no emulador Android
-- `i` — abre no simulador iOS (Mac)
-- `w` — abre no navegador
-
----
-
-## Parar o banco
-
-```bash
-npm run db:down
-```
-
-Para remover também o volume de dados (apaga tudo do banco):
-
-```bash
-docker compose down -v
-```
+| Comando | O que faz |
+|---|---|
+| `npm run db:setup` | Sobe o banco + migrations + seed (primeira vez) |
+| `npm run db:reset` | Apaga tudo e recria do zero |
+| `npm run db:up` | Sobe o container (sem rodar migrations) |
+| `npm run db:down` | Para o container |
+| `npm run db:logs` | Exibe logs do PostgreSQL |
+| `npm run db:migrate` | Roda migrations pendentes |
+| `npm run db:seed` | Popula dados iniciais |
 
 ---
 
@@ -205,8 +145,8 @@ docker compose down -v
 
 | Role | Acesso |
 |---|---|
-| `CLIENTE` | Visualiza profissionais, edita próprio perfil |
-| `PROFISSIONAL` | Gerencia perfil, bio, especialidades e portfólio |
+| `CLIENTE` | Busca profissionais, cria e acompanha contratações |
+| `PROFISSIONAL` | Gerencia perfil, disponibilidade, portfólio e solicitações recebidas |
 | `ADMIN` | CRUD de usuários, categorias, perfis, UFs e cidades |
 
 ---
@@ -224,7 +164,7 @@ docker compose down -v
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
 | GET | `/usuarios/me` | JWT | Meus dados |
-| PUT | `/usuarios/me` | JWT | Atualizar nome, email, telefone, senha |
+| PUT | `/usuarios/me` | JWT | Atualizar nome, e-mail, telefone, senha |
 | GET | `/usuarios` | ADMIN | Listar todos |
 | POST | `/usuarios` | ADMIN | Criar usuário |
 | PUT | `/usuarios/:id` | ADMIN | Editar usuário |
@@ -233,41 +173,56 @@ docker compose down -v
 ### Perfil do Cliente
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
-| GET | `/perfil-cliente/me` | JWT | Meu perfil de cliente |
-| PUT | `/perfil-cliente/me` | JWT | Atualizar preferências |
-| GET | `/perfil-cliente/:userId` | — | Perfil público de um cliente |
+| GET | `/perfil-cliente/me` | JWT | Meu perfil |
+| PUT | `/perfil-cliente/me` | JWT | Atualizar dados |
+| GET | `/perfil-cliente/:userId` | — | Perfil público |
 
 ### Perfil do Profissional
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
 | GET | `/perfil-profissional` | — | Listar profissionais |
-| GET | `/perfil-profissional/me` | JWT | Meu perfil profissional |
-| PUT | `/perfil-profissional/me` | JWT | Atualizar bio, cidade, especialidades |
-| GET | `/perfil-profissional/:userId` | — | Perfil público de um profissional |
-| POST | `/perfil-profissional/portfolio` | JWT | Adicionar imagem ao portfólio |
-| DELETE | `/perfil-profissional/portfolio/:imageId` | JWT | Remover imagem do portfólio |
+| GET | `/perfil-profissional/me` | JWT | Meu perfil |
+| PUT | `/perfil-profissional/me` | JWT | Atualizar bio e especialidades |
+| GET | `/perfil-profissional/:userId` | — | Perfil público |
+| POST | `/perfil-profissional/portfolio` | JWT | Adicionar imagem |
+| DELETE | `/perfil-profissional/portfolio/:imageId` | JWT | Remover imagem |
+
+### Disponibilidade
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| GET | `/disponibilidade/me` | JWT | Minha disponibilidade |
+| PUT | `/disponibilidade/me` | JWT | Salvar disponibilidade |
+| GET | `/disponibilidade/:userId` | — | Disponibilidade pública |
+
+### Contratações
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| POST | `/contratacoes` | JWT (CLIENTE) | Criar solicitação |
+| GET | `/contratacoes` | JWT | Listar as minhas |
+| GET | `/contratacoes/:id` | JWT | Detalhe |
+| PATCH | `/contratacoes/:id/confirmar` | JWT (PROFISSIONAL) | Confirmar |
+| PATCH | `/contratacoes/:id/iniciar` | JWT (PROFISSIONAL) | Iniciar execução |
+| PATCH | `/contratacoes/:id/concluir` | JWT (PROFISSIONAL) | Concluir |
+| PATCH | `/contratacoes/:id/cancelar` | JWT | Cancelar |
+
+### Pagamentos
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| POST | `/contratacoes/:id/pagamento` | JWT (CLIENTE) | Registrar pagamento |
+| GET | `/contratacoes/:id/pagamento` | JWT | Consultar pagamento |
 
 ### Categorias de Serviço
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
-| GET | `/categorias` | — | Listar categorias |
-| GET | `/categorias/:id` | — | Detalhes de uma categoria |
-| POST | `/categorias` | ADMIN | Criar categoria |
-| PUT | `/categorias/:id` | ADMIN | Editar categoria |
-| DELETE | `/categorias/:id` | ADMIN | Remover categoria |
+| GET | `/categorias` | — | Listar |
+| POST/PUT/DELETE | `/categorias` | ADMIN | Gerenciar |
 
 ### Localização
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
 | GET | `/ufs` | — | Listar estados |
-| GET | `/cidades?ufId=` | — | Listar cidades (filtro por UF) |
-| POST/PUT/DELETE | `/ufs`, `/cidades` | ADMIN | Gerenciar localidades |
-
-### Perfis (roles)
-| Método | Rota | Auth | Descrição |
-|---|---|---|---|
-| GET | `/perfis` | — | Listar perfis |
-| POST/PUT/DELETE | `/perfis` | ADMIN | Gerenciar perfis |
+| GET | `/cidades?ufId=` | — | Listar cidades |
+| POST/PUT/DELETE | `/ufs`, `/cidades` | ADMIN | Gerenciar |
 
 ---
 
@@ -275,8 +230,11 @@ docker compose down -v
 
 ```bash
 # Desenvolvimento
-npm run dev:api          # Inicia API com hot-reload
-npm run dev:mobile       # Inicia Expo Dev Server
+npm run dev:web          # API + mobile no navegador
+npm run dev:emulator     # API + mobile no emulador Android
+npm run dev:local        # API + mobile no celular físico (IP auto-detectado)
+npm run dev:tunnel       # API + mobile via túnel Expo
+npm run dev:api          # Somente a API
 
 # Build e qualidade
 npm run build:api        # Build de produção da API
@@ -284,10 +242,12 @@ npm run lint:api         # Lint da API
 npm run typecheck:mobile # Typecheck do mobile
 
 # Banco de dados
-npm run db:up            # Sobe o PostgreSQL (Docker)
-npm run db:migrate       # Roda as migrations
-npm run db:seed          # Popula o banco com dados iniciais
+npm run db:setup         # Primeira vez: sobe banco + migrate + seed
+npm run db:reset         # Apaga tudo e recria do zero
+npm run db:up            # Sobe o PostgreSQL
 npm run db:down          # Para os containers
+npm run db:migrate       # Roda migrations pendentes
+npm run db:seed          # Popula dados iniciais
 npm run db:logs          # Exibe logs do PostgreSQL
 ```
 
@@ -298,19 +258,21 @@ npm run db:logs          # Exibe logs do PostgreSQL
 **API não conecta no banco**
 ```bash
 npm run db:logs
-# Verifique se aparece "ready to accept connections"
+# Verifique: "database system is ready to accept connections"
 ```
 
 **Porta 55432 ocupada**
 
-Edite o `docker-compose.yml` e mude `55432` para outra porta, ajuste o `DATABASE_URL` no `.env`.
+Edite o `docker-compose.yml`, mude `55432` para outra porta e ajuste o `DATABASE_URL` no `.env`.
 
 **Expo não alcança a API no celular físico**
 
-Certifique-se de que o celular e o computador estão na **mesma rede Wi-Fi** e que o `EXPO_PUBLIC_API_URL` usa o IP local da máquina (não `localhost`).
+Use `npm run dev:local` — o IP é detectado automaticamente. Se falhar, defina manualmente:
+```bash
+TASKLY_LOCAL_IP=192.168.1.50 npm run dev:local
+```
 
-**"Cannot find module" no mobile**
-
+**Cache do Metro corrompido**
 ```bash
 cd apps/mobile && npx expo start --clear
 ```
