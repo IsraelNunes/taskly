@@ -12,10 +12,12 @@
     "build:api": "npm run build --workspace @taskly/api",
     "lint:api": "npm run lint --workspace @taskly/api",
     "typecheck:mobile": "npm run typecheck --workspace @taskly/mobile",
-    "db:up": "docker compose up -d postgres",
+    "db:up": "docker compose up -d --wait postgres",
     "db:down": "docker compose down",
     "db:logs": "docker compose logs -f postgres",
     "db:migrate": "npm run db:migrate --workspace @taskly/api",
-    "db:seed": "npm run db:seed --workspace @taskly/api"
+    "db:seed": "npm run db:seed --workspace @taskly/api",
+    "db:setup": "npm run db:up && npm run db:migrate && npm run db:seed",
+    "db:reset": "docker compose down -v && npm run db:setup"
   }
 }
