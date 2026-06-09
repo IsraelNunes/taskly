@@ -18,14 +18,13 @@ export function ProfessionalPublicProfileScreen({ route, navigation }: any) {
 
   useEffect(() => {
     Promise.all([
-      professionalProfileService.getPublic(userId),
-      availabilityService.getPublic(userId),
+      professionalProfileService.getPublic(userId).catch(() => null),
+      availabilityService.getPublic(userId).catch(() => []),
     ])
       .then(([prof, avail]) => {
         setProfile(prof);
-        setAvailability(avail.filter((s) => s.ativo));
+        setAvailability((avail ?? []).filter((s) => s.ativo));
       })
-      .catch(() => null)
       .finally(() => setLoading(false));
   }, [userId]);
 
