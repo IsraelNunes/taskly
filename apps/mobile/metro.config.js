@@ -15,4 +15,19 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, 'node_modules'),
 ];
 
+// Quando o AppEntry.js hoisted tenta resolver "../../App", redireciona
+// para o App.tsx correto dentro de apps/mobile
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (
+    moduleName === '../../App' &&
+    context.originModulePath.includes(path.join('node_modules', 'expo', 'AppEntry'))
+  ) {
+    return {
+      filePath: path.resolve(projectRoot, 'App.tsx'),
+      type: 'sourceFile',
+    };
+  }
+  return context.resolveRequest(context, moduleName, platform);
+};
+
 module.exports = config;
