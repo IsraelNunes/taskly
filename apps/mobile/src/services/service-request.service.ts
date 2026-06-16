@@ -50,4 +50,8 @@ export const serviceRequestService = {
   getPayment(requestId: string, token: string) {
     return apiRequest<Payment | null>(`/contratacoes/${requestId}/pagamento`, { token });
   },
+
+  remove(id: string, token: string) {
+    return apiRequest<void>(`/contratacoes/${id}`, { method: 'DELETE', token });
+  },
 };

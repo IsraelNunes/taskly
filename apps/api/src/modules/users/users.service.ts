@@ -34,6 +34,7 @@ export class UsersService {
     username: string;
     passwordHash: string;
     perfilId: string;
+    cpf?: string;
   }): Promise<typeof users.$inferSelect> {
     const normalized = params.username.toLowerCase();
     const existing = await this.findByUsername(normalized);
@@ -49,6 +50,7 @@ export class UsersService {
         username: normalized,
         passwordHash: params.passwordHash,
         perfilId: params.perfilId,
+        cpf: params.cpf ?? null,
       })
       .returning();
 
@@ -61,6 +63,7 @@ export class UsersService {
     passwordHash: string;
     perfilId: string;
     role: string;
+    cpf?: string;
   }): Promise<typeof users.$inferSelect> {
     const user = await this.create(params);
 

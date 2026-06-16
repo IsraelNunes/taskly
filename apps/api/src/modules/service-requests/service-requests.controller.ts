@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
@@ -48,5 +48,11 @@ export class ServiceRequestsController {
     @Body() dto: CancelServiceRequestDto,
   ) {
     return this.service.cancelar(id, user.sub, dto);
+  }
+
+  @Delete(':id')
+  @HttpCode(204)
+  remove(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.service.remove(id, user.sub);
   }
 }

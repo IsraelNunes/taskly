@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, eq, or } from 'drizzle-orm';
+import { and, desc, eq, or } from 'drizzle-orm';
 import { DRIZZLE_DB } from '../../db/database.constants';
 import { DrizzleDatabase } from '../../db/database.types';
 import { payments, serviceCategories, serviceRequests, users } from '../../db/schema';
@@ -60,7 +60,7 @@ export class ServiceRequestsService {
       .leftJoin(users, eq(serviceRequests.clientId, users.id))
       .leftJoin(serviceCategories, eq(serviceRequests.categoryId, serviceCategories.id))
       .where(condition)
-      .orderBy(serviceRequests.createdAt);
+      .orderBy(desc(serviceRequests.createdAt));
 
     return rows;
   }
@@ -147,6 +147,29 @@ export class ServiceRequestsService {
       .returning();
 
     return updated;
+  }
+
+  async remove(id: string, userId: string): Promise<void> {
+    const [row] = await this.db
+      .select()
+      .from(serviceRequests)
+      .where(
+        and(
+          eq(serviceRequests.id, id),
+          or(eq(serviceRequests.clientId, userId), eq(serviceRequests.professionalId, userId)),
+        ),
+      )
+      .limit(1);
+
+    if (!row) throw new NotFoundException('Contratação não encontrada.');
+
+    if (!['CONCLUIDO', 'CANCELADO'].includes(row.status)) {
+      throw new BadRequestException(
+        'Só é possível excluir contratações concluídas ou canceladas.',
+      );
+    }
+
+    await this.db.delete(serviceRequests).where(eq(serviceRequests.id, id));
   }
 
   private async getAndValidate(

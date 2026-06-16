@@ -8,6 +8,7 @@ Marketplace de serviços que conecta **clientes** a **profissionais** (elétrica
 |---|---|
 | API | NestJS · Drizzle ORM · PostgreSQL · JWT |
 | Mobile | React Native · Expo SDK 54 · React Navigation |
+| Pagamentos | Asaas (PIX, Cartão de Crédito) |
 | Infra | Docker Compose (PostgreSQL) |
 
 ## Estrutura
@@ -22,6 +23,7 @@ Taskly/
 │   │       ├── config/             # Validação de env (Zod)
 │   │       ├── db/                 # Schema Drizzle, migrations, seed
 │   │       └── modules/
+│   │           ├── asaas/                  # Integração Asaas (PIX, Cartão)
 │   │           ├── auth/                   # Login, cadastro, JWT
 │   │           ├── users/                  # Usuários
 │   │           ├── profiles/               # CRUD de perfis (ADMIN)
@@ -30,7 +32,7 @@ Taskly/
 │   │           ├── availability/           # Disponibilidade do profissional
 │   │           ├── service-categories/     # Categorias de serviço
 │   │           ├── service-requests/       # Contratações
-│   │           ├── payments/               # Pagamentos
+│   │           ├── payments/               # Pagamentos + webhook Asaas
 │   │           ├── ufs/                    # Estados brasileiros
 │   │           └── cities/                 # Cidades
 │   └── mobile/                     # App React Native
@@ -79,12 +81,19 @@ DATABASE_URL=postgresql://taskly:taskly@localhost:55432/taskly
 JWT_SECRET=chave-secreta-minimo-8-chars
 JWT_EXPIRES_IN=7d
 
+# Integração Asaas (gateway de pagamento)
+ASAAS_API_KEY=seu_token_asaas
+ASAAS_ENVIRONMENT=sandbox        # sandbox | production
+ASAAS_WEBHOOK_TOKEN=             # opcional — token para validar webhooks
+
 # Opcionais (têm default)
 PORT=3333
 API_PREFIX=api
 CORS_ORIGIN=*
 NODE_ENV=development
 ```
+
+> Obtenha sua chave de API em [sandbox.asaas.com](https://sandbox.asaas.com) (ambiente de testes) ou [asaas.com](https://asaas.com) (produção).
 
 ---
 
@@ -145,7 +154,7 @@ Senha de todas: **`123456`**
 
 | Role | Acesso |
 |---|---|
-| `CLIENTE` | Busca profissionais, cria e acompanha contratações |
+| `CLIENTE` | Busca profissionais, cria e acompanha contratações, registra pagamentos |
 | `PROFISSIONAL` | Gerencia perfil, disponibilidade, portfólio e solicitações recebidas |
 | `ADMIN` | CRUD de usuários, categorias, perfis, UFs e cidades |
 
@@ -156,7 +165,7 @@ Senha de todas: **`123456`**
 ### Autenticação
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
-| POST | `/auth/cadastro` | — | Cadastro (`CLIENTE` ou `PROFISSIONAL`) |
+| POST | `/auth/cadastro` | — | Cadastro (`CLIENTE` ou `PROFISSIONAL`); aceita `cpf` opcional |
 | POST | `/auth/login` | — | Login, retorna JWT |
 | GET | `/auth/me` | JWT | Dados do usuário logado |
 
@@ -198,18 +207,66 @@ Senha de todas: **`123456`**
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
 | POST | `/contratacoes` | JWT (CLIENTE) | Criar solicitação |
-| GET | `/contratacoes` | JWT | Listar as minhas |
+| GET | `/contratacoes` | JWT | Listar as minhas (mais recentes primeiro) |
 | GET | `/contratacoes/:id` | JWT | Detalhe |
 | PATCH | `/contratacoes/:id/confirmar` | JWT (PROFISSIONAL) | Confirmar |
 | PATCH | `/contratacoes/:id/iniciar` | JWT (PROFISSIONAL) | Iniciar execução |
 | PATCH | `/contratacoes/:id/concluir` | JWT (PROFISSIONAL) | Concluir |
 | PATCH | `/contratacoes/:id/cancelar` | JWT | Cancelar |
+| DELETE | `/contratacoes/:id` | JWT | Excluir do histórico (apenas CONCLUIDO/CANCELADO) |
 
 ### Pagamentos
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
-| POST | `/contratacoes/:id/pagamento` | JWT (CLIENTE) | Registrar pagamento |
-| GET | `/contratacoes/:id/pagamento` | JWT | Consultar pagamento |
+| POST | `/contratacoes/:id/pagamento` | JWT (CLIENTE) | Registrar pagamento (PIX, Cartão ou Dinheiro) |
+| GET | `/contratacoes/:id/pagamento` | JWT | Consultar pagamento e status |
+
+#### Métodos de pagamento
+
+| Método | Body adicional | Comportamento |
+|---|---|---|
+| `PIX` | `cpf` (11 dígitos) | Cria cobrança no Asaas → retorna QR code e código copia e cola → status `AGUARDANDO` → confirmado via webhook |
+| `CARTAO` | `cpf` + objeto `cartao` | Processa cartão no Asaas de forma síncrona → status `PAGO` |
+| `DINHEIRO` | — | Registra pagamento local imediatamente → status `PAGO` |
+
+**Exemplo PIX:**
+```json
+{
+  "valor": 150.00,
+  "metodo": "PIX",
+  "cpf": "12345678901"
+}
+```
+
+**Exemplo Cartão:**
+```json
+{
+  "valor": 150.00,
+  "metodo": "CARTAO",
+  "cpf": "12345678901",
+  "cartao": {
+    "holderName": "João Silva",
+    "number": "5162306219378829",
+    "expiryMonth": "05",
+    "expiryYear": "2030",
+    "cvv": "318",
+    "email": "joao@email.com",
+    "cep": "01310100",
+    "numeroEndereco": "100"
+  }
+}
+```
+
+### Webhook Asaas
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| POST | `/webhooks/asaas` | — | Recebe notificações do Asaas (confirma PIX automaticamente) |
+
+> Para desenvolvimento local, use [ngrok](https://ngrok.com) para expor `localhost:3333/api/webhooks/asaas` ao Asaas:
+> ```bash
+> ngrok http 3333
+> # Registre o URL no painel do Asaas: https://<seu-id>.ngrok.io/api/webhooks/asaas
+> ```
 
 ### Categorias de Serviço
 | Método | Rota | Auth | Descrição |
@@ -275,4 +332,12 @@ TASKLY_LOCAL_IP=192.168.1.50 npm run dev:local
 **Cache do Metro corrompido**
 ```bash
 cd apps/mobile && npx expo start --clear
+```
+
+**PIX não confirma automaticamente**
+
+Em desenvolvimento local, o Asaas não consegue chamar `localhost`. Configure o webhook com ngrok:
+```bash
+ngrok http 3333
+# Registre https://<id>.ngrok.io/api/webhooks/asaas no painel do Asaas
 ```

@@ -32,6 +32,7 @@ export class AuthService {
       passwordHash,
       perfilId: profile.id,
       role: profile.descricao,
+      cpf: dto.cpf,
     });
 
     const payload: JwtPayload = {

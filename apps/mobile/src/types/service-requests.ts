@@ -5,11 +5,16 @@ export type ServiceRequestStatus =
   | 'CONCLUIDO'
   | 'CANCELADO';
 
+export type PaymentStatus = 'PENDENTE' | 'AGUARDANDO' | 'PAGO' | 'FALHOU' | 'CANCELADO';
+
 export type Payment = {
   id: string;
   valor: string;
   metodo: 'PIX' | 'CARTAO' | 'DINHEIRO';
-  status: 'PENDENTE' | 'PAGO';
+  status: PaymentStatus;
+  asaasPaymentId: string | null;
+  pixQrCode: string | null;
+  pixCopiaCola: string | null;
   pagoEm: string | null;
 };
 
@@ -49,7 +54,21 @@ export type CreateServiceRequestPayload = {
   valorEstimado?: number;
 };
 
+export type CartaoPayload = {
+  holderName: string;
+  number: string;
+  expiryMonth: string;
+  expiryYear: string;
+  cvv: string;
+  email: string;
+  cep: string;
+  numeroEndereco: string;
+  telefone?: string;
+};
+
 export type CreatePaymentPayload = {
   valor: number;
   metodo: 'PIX' | 'CARTAO' | 'DINHEIRO';
+  cpf?: string;
+  cartao?: CartaoPayload;
 };

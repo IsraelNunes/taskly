@@ -32,17 +32,19 @@ CREATE TABLE IF NOT EXISTS "cities" (
 
 -- ─── Usuários ─────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS "users" (
-  "id"            uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-  "nome"          varchar(120) NOT NULL,
-  "username"      varchar(80)  NOT NULL,
-  "email"         varchar(160),
-  "telefone"      varchar(20),
-  "avatar_url"    text,
-  "password_hash" varchar(255) NOT NULL,
-  "perfil_id"     uuid NOT NULL  REFERENCES "profiles"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-  "city_id"       uuid           REFERENCES "cities"("id")   ON DELETE SET NULL ON UPDATE CASCADE,
-  "created_at"    timestamp with time zone DEFAULT now() NOT NULL,
-  "updated_at"    timestamp with time zone DEFAULT now() NOT NULL,
+  "id"                  uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "nome"                varchar(120) NOT NULL,
+  "username"            varchar(80)  NOT NULL,
+  "email"               varchar(160),
+  "telefone"            varchar(20),
+  "avatar_url"          text,
+  "password_hash"       varchar(255) NOT NULL,
+  "perfil_id"           uuid NOT NULL  REFERENCES "profiles"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+  "city_id"             uuid           REFERENCES "cities"("id")   ON DELETE SET NULL ON UPDATE CASCADE,
+  "cpf"                 varchar(14),
+  "asaas_customer_id"   varchar(50),
+  "created_at"          timestamp with time zone DEFAULT now() NOT NULL,
+  "updated_at"          timestamp with time zone DEFAULT now() NOT NULL,
   CONSTRAINT "users_username_unique" UNIQUE ("username"),
   CONSTRAINT "users_email_unique"    UNIQUE ("email")
 );
@@ -128,6 +130,7 @@ CREATE TABLE IF NOT EXISTS "service_requests" (
 );
 
 -- ─── Pagamentos ──────────────────────────────────────────────────────────────
+-- status: PENDENTE | AGUARDANDO | PAGO | FALHOU | CANCELADO
 CREATE TABLE IF NOT EXISTS "payments" (
   "id"                 uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   "service_request_id" uuid NOT NULL UNIQUE REFERENCES "service_requests"("id") ON DELETE CASCADE ON UPDATE CASCADE,
@@ -135,6 +138,9 @@ CREATE TABLE IF NOT EXISTS "payments" (
   "metodo"             varchar(20)   NOT NULL,
   "status"             varchar(20)   DEFAULT 'PENDENTE' NOT NULL,
   "pago_em"            timestamp with time zone,
+  "asaas_payment_id"   varchar(50),
+  "pix_qr_code"        text,
+  "pix_copia_cola"     text,
   "created_at"         timestamp with time zone DEFAULT now() NOT NULL
 );
 
@@ -148,8 +154,9 @@ CREATE TABLE IF NOT EXISTS "__drizzle_migrations" (
 );
 
 INSERT INTO "__drizzle_migrations" ("hash", "created_at") VALUES
-  ('0000_rapid_mephisto', extract(epoch from now()) * 1000),
-  ('0001_closed_sandman', extract(epoch from now()) * 1000),
-  ('0002_taskly_profiles', extract(epoch from now()) * 1000),
-  ('0003_entrega3',        extract(epoch from now()) * 1000)
+  ('0000_rapid_mephisto',    extract(epoch from now()) * 1000),
+  ('0001_closed_sandman',    extract(epoch from now()) * 1000),
+  ('0002_taskly_profiles',   extract(epoch from now()) * 1000),
+  ('0003_entrega3',          extract(epoch from now()) * 1000),
+  ('0004_asaas_payments',    extract(epoch from now()) * 1000)
 ON CONFLICT DO NOTHING;

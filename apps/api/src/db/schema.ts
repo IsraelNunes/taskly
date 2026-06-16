@@ -23,12 +23,14 @@ export const users = pgTable('users', {
   username: varchar('username', { length: 80 }).notNull().unique(),
   email: varchar('email', { length: 160 }).unique(),
   telefone: varchar('telefone', { length: 20 }),
+  cpf: varchar('cpf', { length: 14 }),
   avatarUrl: text('avatar_url'),
   passwordHash: varchar('password_hash', { length: 255 }).notNull(),
   perfilId: uuid('perfil_id')
     .notNull()
     .references(() => profiles.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
   cityId: uuid('city_id').references(() => cities.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+  asaasCustomerId: varchar('asaas_customer_id', { length: 50 }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -208,7 +210,10 @@ export const payments = pgTable('payments', {
     .references(() => serviceRequests.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
   valor: numeric('valor', { precision: 10, scale: 2 }).notNull(),
   metodo: varchar('metodo', { length: 20 }).notNull(), // PIX | CARTAO | DINHEIRO
-  status: varchar('status', { length: 20 }).default('PENDENTE').notNull(), // PENDENTE | PAGO
+  status: varchar('status', { length: 20 }).default('PENDENTE').notNull(), // PENDENTE | AGUARDANDO | PAGO | FALHOU | CANCELADO
+  asaasPaymentId: varchar('asaas_payment_id', { length: 50 }),
+  pixQrCode: text('pix_qr_code'),
+  pixCopiaCola: text('pix_copia_cola'),
   pagoEm: timestamp('pago_em', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });

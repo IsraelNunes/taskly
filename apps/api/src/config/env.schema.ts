@@ -8,6 +8,9 @@ export const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   JWT_SECRET: z.string().min(8),
   JWT_EXPIRES_IN: z.string().default('1d'),
+  ASAAS_API_KEY: z.string().min(1),
+  ASAAS_ENVIRONMENT: z.enum(['sandbox', 'production']).default('sandbox'),
+  ASAAS_WEBHOOK_TOKEN: z.string().optional(),
 });
 
 export type EnvSchema = z.infer<typeof envSchema>;

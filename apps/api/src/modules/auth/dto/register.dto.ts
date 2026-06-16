@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 enum RegisterProfileRole {
   CLIENTE = 'CLIENTE',
@@ -26,4 +26,9 @@ export class RegisterDto {
   @IsOptional()
   @IsEnum(RegisterProfileRole)
   perfil?: RegisterProfileRole;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{11}$/, { message: 'CPF inválido. Envie apenas os 11 dígitos sem pontuação.' })
+  cpf?: string;
 }

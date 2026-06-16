@@ -30,6 +30,7 @@ export function RequestDetailScreen({ route, navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const load = useCallback(() => {
     if (!token) return;
@@ -43,12 +44,16 @@ export function RequestDetailScreen({ route, navigation }: any) {
 
   useFocusEffect(load);
 
-  const doAction = async (action: () => Promise<any>) => {
+  const doAction = async (action: () => Promise<any>, goBack = false) => {
     setActionLoading(true);
     setError(null);
     try {
       await action();
-      load();
+      if (goBack) {
+        navigation.goBack();
+      } else {
+        load();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao processar ação.');
     } finally {
@@ -121,8 +126,6 @@ export function RequestDetailScreen({ route, navigation }: any) {
         </View>
       ) : null}
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
       <View style={styles.actions}>
         {isProfessional && status === 'PENDENTE' && (
           <>
@@ -174,6 +177,41 @@ export function RequestDetailScreen({ route, navigation }: any) {
             onPress={() => doAction(() => serviceRequestService.cancelar(request.id, undefined, token!))}
           />
         )}
+        {['CONCLUIDO', 'CANCELADO'].includes(status) && !confirmDelete && (
+          <AppButton
+            title="Excluir do histórico"
+            variant="ghost"
+            loading={actionLoading}
+            onPress={() => setConfirmDelete(true)}
+          />
+        )}
+        {confirmDelete && (
+          <View style={styles.confirmBox}>
+            <Text style={styles.confirmText}>
+              Excluir esta contratação do histórico? Esta ação não pode ser desfeita.
+            </Text>
+            <View style={styles.confirmActions}>
+              <View style={styles.flex1}>
+                <AppButton
+                  title="Cancelar"
+                  variant="ghost"
+                  onPress={() => setConfirmDelete(false)}
+                />
+              </View>
+              <View style={styles.flex1}>
+                <AppButton
+                  title="Excluir"
+                  variant="danger"
+                  loading={actionLoading}
+                  onPress={() =>
+                    doAction(() => serviceRequestService.remove(request.id, token!), true)
+                  }
+                />
+              </View>
+            </View>
+          </View>
+        )}
+      {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>
     </ScrollView>
   );
@@ -212,6 +250,17 @@ const styles = StyleSheet.create({
   infoValue: { color: colors.text, fontSize: 13, fontWeight: '500', textAlign: 'right', flexShrink: 1, paddingLeft: spacing.sm },
   descText: { color: colors.text, fontSize: 14, lineHeight: 22 },
   actions: { gap: spacing.sm },
+  confirmBox: {
+    backgroundColor: '#FFF5F5',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.danger + '40',
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  confirmText: { fontSize: 14, color: colors.text, lineHeight: 20 },
+  confirmActions: { flexDirection: 'row', gap: spacing.sm },
+  flex1: { flex: 1 },
   error: { color: colors.danger, fontSize: 13, textAlign: 'center' },
   errorText: { color: colors.textMuted, fontSize: 15 },
 });
